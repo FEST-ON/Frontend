@@ -1,0 +1,95 @@
+"use client";
+
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Star, CheckCircle2 } from "lucide-react";
+import { fetchSurveyQuestions } from "@/entities/visitor";
+import { Button } from "@/shared/ui/button";
+import { Skeleton } from "@/shared/ui/skeleton";
+import { cn } from "@/shared/lib/utils";
+
+export default function SurveyPage() {
+  const { data: questions, isLoading } = useQuery({ queryKey: ["survey-questions"], queryFn: fetchSurveyQuestions });
+  const [answers, setAnswers] = useState<Record<string, string | number>>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  if (submitted) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 px-6 py-24 text-center">
+        <span className="inline-flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950">
+          <CheckCircle2 className="size-7" />
+        </span>
+        <h2 className="text-base font-bold text-foreground">소중한 의견 감사합니다!</h2>
+        <p className="text-xs text-muted-foreground">더 나은 축제를 만드는 데 큰 도움이 돼요.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 pt-4 pb-6">
+      <h1 className="text-lg font-extrabold text-foreground">만족도 조사</h1>
+      <p className="text-xs text-muted-foreground">1분이면 충분해요, 솔직한 의견을 들려주세요</p>
+
+      {isLoading || !questions ? (
+        <div className="mt-4 space-y-3">
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full rounded-xl" />
+        </div>
+      ) : (
+        <form
+          className="mt-4 space-y-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setSubmitted(true);
+          }}
+        >
+          {questions.map((q) => (
+            <div key={q.id} className="rounded-xl border border-border bg-card p-4">
+              <p className="text-sm font-semibold text-foreground">{q.question}</p>
+              {q.type === "rating" ? (
+                <div className="mt-3 flex gap-2">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setAnswers((a) => ({ ...a, [q.id]: n }))}
+                      aria-label={`${n}점`}
+                    >
+                      <Star
+                        className={cn(
+                          "size-7 transition-colors",
+                          (Number(answers[q.id]) || 0) >= n ? "fill-amber-400 text-amber-400" : "text-muted-foreground",
+                        )}
+                      />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {q.options?.map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setAnswers((a) => ({ ...a, [q.id]: opt }))}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-xs font-semibold",
+                        answers[q.id] === opt
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-foreground",
+                      )}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          <Button type="submit" className="w-full" disabled={Object.keys(answers).length < questions.length}>
+            제출하기
+          </Button>
+        </form>
+      )}
+    </div>
+  );
+}
