@@ -12,7 +12,6 @@ import {
   SendHorizontal,
   Square,
   Sparkles,
-  Users,
   Volume2,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
@@ -23,7 +22,7 @@ import { usePersoChatStore } from "../model/chat-store";
 import { useSpeechRecognition } from "../model/use-speech-recognition";
 
 const EXPECTED_QUESTIONS = [
-  { icon: Users, label: "지금 가장 혼잡한 곳은?" },
+  { icon: MapPin, label: "축제 부스 위치 알려줘" },
   { icon: Bus, label: "셔틀버스 이용 방법" },
   { icon: MapPin, label: "가까운 화장실 안내" },
   { icon: CalendarDays, label: "오늘 주요 프로그램" },

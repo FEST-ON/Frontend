@@ -1,6 +1,5 @@
 import { delay } from "@/shared/lib/async";
 import type {
-  CongestionZone,
   FacilityInfo,
   FestivalInfo,
   ScheduleItem,
@@ -40,17 +39,10 @@ export const facilities: FacilityInfo[] = [
 ];
 
 export const transportOptions: TransportOption[] = [
-  { id: "t1", mode: "지하철", label: "5호선 여의나루역 2번 출구", detail: "도보 5분, 엘리베이터 이용 가능", status: "원활" },
-  { id: "t2", mode: "버스", label: "간선 462, 753 여의나루역 정류장", detail: "배차 8~10분", status: "보통" },
-  { id: "t3", mode: "셔틀", label: "여의도역 ↔ 축제장 무료 셔틀", detail: "15분 간격 운행 · 전기버스", status: "원활" },
-  { id: "t4", mode: "주차", label: "여의나루 임시주차장 (사전예약)", detail: "잔여 42면 / 200면", status: "혼잡" },
-];
-
-export const congestionZones: CongestionZone[] = [
-  { id: "c1", zone: "메인스테이지", level: "혼잡", waitMinutes: 18, updatedAt: "방금 전" },
-  { id: "c2", zone: "그린마켓 · 푸드존", level: "보통", waitMinutes: 8, updatedAt: "2분 전" },
-  { id: "c3", zone: "체험존 A (업사이클링)", level: "여유", waitMinutes: 2, updatedAt: "1분 전" },
-  { id: "c4", zone: "전시홀", level: "여유", waitMinutes: 0, updatedAt: "방금 전" },
+  { id: "t1", mode: "지하철", label: "5호선 여의나루역 2번 출구", detail: "도보 5분, 엘리베이터 이용 가능", status: "이용가능" },
+  { id: "t2", mode: "버스", label: "간선 462, 753 여의나루역 정류장", detail: "배차 8~10분", status: "운행중" },
+  { id: "t3", mode: "셔틀", label: "여의도역 ↔ 축제장 무료 셔틀", detail: "15분 간격 운행 · 전기버스", status: "운행중" },
+  { id: "t4", mode: "주차", label: "여의나루 임시주차장 (사전예약)", detail: "잔여 42면 / 200면", status: "만차임박" },
 ];
 
 export async function fetchFestivalInfo() {
@@ -64,7 +56,4 @@ export async function fetchFacilities() {
 }
 export async function fetchTransport() {
   return delay(transportOptions, 450);
-}
-export async function fetchCongestion() {
-  return delay(congestionZones, 350);
 }

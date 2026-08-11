@@ -2,15 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Bus, Car, TrainFront } from "lucide-react";
-import {
-  fetchCongestion,
-  fetchFacilities,
-  fetchTransport,
-} from "@/entities/festival";
+import { fetchFacilities, fetchTransport } from "@/entities/festival";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Badge } from "@/shared/ui/badge";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { CongestionList } from "@/widgets/congestion-map/congestion-list";
 import { FestivalMap } from "@/features/map/ui/festival-map";
 
 const TRANSPORT_ICON = {
@@ -21,17 +16,13 @@ const TRANSPORT_ICON = {
 } as const;
 
 const STATUS_STYLE = {
-  원활: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
-  보통: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+  운행중: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
+  이용가능: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
+  만차임박: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
   지연: "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300",
-  혼잡: "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300",
 } as const;
 
 export default function VisitorMapPage() {
-  const { data: congestion, isLoading: cLoading } = useQuery({
-    queryKey: ["congestion"],
-    queryFn: fetchCongestion,
-  });
   const { data: facilities, isLoading: fLoading } = useQuery({
     queryKey: ["facilities"],
     queryFn: fetchFacilities,
@@ -47,25 +38,16 @@ export default function VisitorMapPage() {
         디지털 지도 · 시설정보
       </h1>
       <p className="text-xs text-muted-foreground">
-        실시간 혼잡도와 편의시설, 교통정보를 확인하세요
+        등록된 축제 부스와 편의시설, 교통정보를 확인하세요
       </p>
 
       <FestivalMap />
 
-      <Tabs defaultValue="congestion" className="mt-4">
-        <TabsList className="grid grid-cols-3">
-          <TabsTrigger value="congestion">혼잡도</TabsTrigger>
+      <Tabs defaultValue="facility" className="mt-4">
+        <TabsList className="grid grid-cols-2">
           <TabsTrigger value="facility">편의시설</TabsTrigger>
           <TabsTrigger value="transport">교통</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="congestion" className="mt-3 space-y-2.5">
-          {cLoading || !congestion ? (
-            <Skeleton className="h-40 w-full rounded-xl" />
-          ) : (
-            <CongestionList zones={congestion} />
-          )}
-        </TabsContent>
 
         <TabsContent value="facility" className="mt-3 space-y-2">
           {fLoading || !facilities ? (
@@ -129,4 +111,3 @@ export default function VisitorMapPage() {
     </div>
   );
 }
-

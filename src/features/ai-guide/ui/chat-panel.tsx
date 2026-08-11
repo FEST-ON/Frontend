@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { Sparkles, Volume2, RotateCcw, MapPin, Car, Bus, Users, ShieldCheck, CalendarDays, Compass, Recycle } from "lucide-react";
+import { Sparkles, Volume2, RotateCcw, MapPin, Car, Bus, ShieldCheck, CalendarDays, Compass, Recycle } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { cn } from "@/shared/lib/utils";
 import { useChatStore } from "../model/chat-store";
@@ -9,7 +9,7 @@ import { buildMessage, generateReply } from "../lib/generate-reply";
 import { useAccessibilityStore } from "@/features/accessibility/model/store";
 
 const FAQ_ITEMS = [
-  { icon: Users, label: "지금 어디가 가장 혼잡한가요?" },
+  { icon: MapPin, label: "축제 부스 위치 알려줘" },
   { icon: Car, label: "주차장 이용 안내해줘" },
   { icon: Bus, label: "셔틀버스는 어떻게 타나요?" },
   { icon: MapPin, label: "화장실은 어디에 있나요?" },

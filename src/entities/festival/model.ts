@@ -32,13 +32,5 @@ export interface TransportOption {
   mode: "지하철" | "버스" | "셔틀" | "주차";
   label: string;
   detail: string;
-  status: "원활" | "보통" | "혼잡" | "지연";
-}
-
-export interface CongestionZone {
-  id: string;
-  zone: string;
-  level: "여유" | "보통" | "혼잡";
-  waitMinutes: number;
-  updatedAt: string;
+  status: "운행중" | "이용가능" | "만차임박" | "지연";
 }

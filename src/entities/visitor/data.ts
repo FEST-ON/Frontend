@@ -8,7 +8,7 @@ export const sampleCourse: RecommendedCourse = {
   totalMinutes: 180,
   stops: [
     { order: 1, time: "14:00", title: "통합 안내소에서 스탬프 투어 시작", location: "정문 입구", note: "유아 동반 시 대여용 웨건 수령 가능" },
-    { order: 2, time: "14:20", title: "업사이클링 공방 체험", location: "체험존 A-2", note: "혼잡도 여유 · 대기 2분" },
+    { order: 2, time: "14:20", title: "업사이클링 공방 체험", location: "체험존 A-2", note: "사전 예약 확인 완료" },
     { order: 3, time: "15:10", title: "그린마켓 · 로컬푸드 간식", location: "푸드존 F-3", note: "다회용기 이용 시 스탬프 적립" },
     { order: 4, time: "16:00", title: "지속가능 사진전 관람", location: "전시홀", note: "실내 휴게공간, 수유실 인접" },
     { order: 5, time: "16:50", title: "물빛광장 산책 및 마무리", location: "물빛광장", note: "다음 코스: 야간 공연 대기 없이 관람 가능" },

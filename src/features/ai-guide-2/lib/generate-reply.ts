@@ -1,4 +1,5 @@
-import { congestionZones, facilities, scheduleItems, transportOptions } from "@/entities/festival";
+import { facilities, scheduleItems, transportOptions } from "@/entities/festival";
+import { DEFAULT_MAP_LOCATIONS } from "@/features/map/api/map-locations";
 import type { ChatMessage } from "@/entities/visitor";
 
 interface ReplyResult {
@@ -9,11 +10,10 @@ interface ReplyResult {
 export function generatePersoReply(question: string): ReplyResult {
   const query = question.toLowerCase();
 
-  if (/(혼잡|대기|사람)/.test(query)) {
-    const busiest = [...congestionZones].sort((a, b) => b.waitMinutes - a.waitMinutes)[0];
+  if (/(부스|지도|위치)/.test(query)) {
     return {
-      content: `현재 ${busiest.zone}이 가장 혼잡해요. 평균 대기는 ${busiest.waitMinutes}분이며, 여유 구역부터 둘러보시는 걸 추천드려요.`,
-      sources: ["실시간 혼잡도 데이터"],
+      content: DEFAULT_MAP_LOCATIONS.slice(0, 4).map((item) => `${item.name} · ${item.description}`).join("\n"),
+      sources: ["관리자 승인 지도·부스 데이터"],
     };
   }
 

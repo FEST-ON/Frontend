@@ -1,5 +1,4 @@
 import {
-  congestionZones,
   facilities,
   scheduleItems,
   transportOptions,
@@ -21,7 +20,7 @@ export function generateReply(question: string): ReplyResult {
   if (/(주차|차량|자차)/.test(q)) {
     const parking = transportOptions.find((t) => t.mode === "주차");
     return {
-      content: `${parking?.label}에 ${parking?.detail}. 현재 혼잡도는 "${parking?.status}"이니 대중교통이나 무료 셔틀 이용을 추천드려요.`,
+      content: `${parking?.label}에 ${parking?.detail}. 현재 상태는 "${parking?.status}"이며 대중교통이나 무료 셔틀도 이용할 수 있어요.`,
       sources: ["운영 승인 교통정보"],
     };
   }
@@ -32,13 +31,6 @@ export function generateReply(question: string): ReplyResult {
   if (/(화장실|구급실|안내소|수유실|보관소|편의시설)/.test(q)) {
     const list = facilities.slice(0, 3).map((f) => `- ${f.name} (도보 ${f.walkMinutes}분, ${f.location})`).join("\n");
     return { content: `가까운 편의시설을 안내드려요.\n${list}`, sources: ["시설 승인 데이터"] };
-  }
-  if (/(혼잡|대기|사람\s?많)/.test(q)) {
-    const busiest = [...congestionZones].sort((a, b) => b.waitMinutes - a.waitMinutes)[0];
-    return {
-      content: `현재 "${busiest.zone}"이(가) 가장 혼잡해요 (평균 대기 ${busiest.waitMinutes}분). 대신 "${congestionZones.find((c) => c.level === "여유")?.zone}"은(는) 여유로우니 먼저 둘러보시는 걸 추천드려요.`,
-      sources: ["실시간 혼잡도 센서 데이터"],
-    };
   }
   if (/(안전|사고|응급|비상)/.test(q)) {
     return {

@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, MapPin, Sparkles, Ticket, Stamp, ClipboardList, ArrowRight } from "lucide-react";
-import { fetchCongestion, fetchFestivalInfo, fetchSchedule } from "@/entities/festival";
+import { fetchFestivalInfo, fetchSchedule } from "@/entities/festival";
 import { useAccessibilityStore } from "@/features/accessibility/model/store";
 import { useVisitorMenuSettingsStore } from "@/features/visitor-menu-settings/model/store";
 import type { VisitorMenuKey } from "@/features/visitor-menu-settings/model/store";
 import { Badge } from "@/shared/ui/badge";
-import { Skeleton } from "@/shared/ui/skeleton";
-import { CongestionList } from "@/widgets/congestion-map/congestion-list";
 
 const QUICK_MENU: {
   href: string;
@@ -44,10 +42,6 @@ export default function VisitorHomePage() {
   );
   const { data: festival } = useQuery({ queryKey: ["festival-info"], queryFn: fetchFestivalInfo });
   const { data: schedule } = useQuery({ queryKey: ["schedule"], queryFn: fetchSchedule });
-  const { data: congestion, isLoading: congestionLoading } = useQuery({
-    queryKey: ["congestion"],
-    queryFn: fetchCongestion,
-  });
 
   const today = new Date().toLocaleDateString("ko-KR", {
     year: "numeric",
@@ -93,23 +87,6 @@ export default function VisitorHomePage() {
           </Link>
         ))}
       </div>
-
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-foreground">실시간 혼잡도</h3>
-          <Link href="/visitor/map" className="inline-flex items-center gap-0.5 text-xs font-medium text-primary">
-            지도 보기 <ArrowRight className="size-3" />
-          </Link>
-        </div>
-        {congestionLoading || !congestion ? (
-          <div className="space-y-2.5">
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-          </div>
-        ) : (
-          <CongestionList zones={congestion.slice(0, 2)} />
-        )}
-      </section>
 
       {visitorMode === "qr" && (
         <section>

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users2, Ticket, Sparkles, Leaf, LogOut } from "lucide-react";
+import { LayoutDashboard, Users2, Ticket, Sparkles, Leaf, LogOut, MapPinned } from "lucide-react";
 import { Logo } from "@/shared/ui/logo";
 import { cn } from "@/shared/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "운영 대시보드", icon: LayoutDashboard },
   { href: "/admin/programs", label: "통합 운영관리", icon: Users2 },
+  { href: "/admin/map-locations", label: "지도·부스 설정", icon: MapPinned },
   { href: "/admin/tickets", label: "민원·공지·사고", icon: Ticket },
   { href: "/admin/ai-insights", label: "AI 민원 인사이트", icon: Sparkles },
   { href: "/admin/esg", label: "ESG 성과관리", icon: Leaf },
