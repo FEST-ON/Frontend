@@ -3,23 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Sparkles, MapPin, Ticket, Stamp } from "lucide-react";
+import { useVisitorMenuSettingsStore } from "@/features/visitor-menu-settings/model/store";
+import type { VisitorMenuKey } from "@/features/visitor-menu-settings/model/store";
 import { cn } from "@/shared/lib/utils";
 
-const NAV_ITEMS = [
+const NAV_ITEMS: { href: string; label: string; icon: typeof Home; menuKey?: VisitorMenuKey }[] = [
   { href: "/visitor", label: "홈", icon: Home },
   { href: "/visitor/ai-guide", label: "AI안내", icon: Sparkles },
   { href: "/visitor/map", label: "지도", icon: MapPin },
-  { href: "/visitor/reservation", label: "예약", icon: Ticket },
-  { href: "/visitor/stamp-tour", label: "스탬프", icon: Stamp },
-] as const;
+  { href: "/visitor/reservation", label: "예약", icon: Ticket, menuKey: "reservation" },
+  { href: "/visitor/stamp-tour", label: "스탬프", icon: Stamp, menuKey: "stampTour" },
+];
 
 export function VisitorNav() {
   const pathname = usePathname();
+  const menuSettings = useVisitorMenuSettingsStore();
+  const navItems = NAV_ITEMS.filter((item) => !item.menuKey || menuSettings[item.menuKey]);
 
   return (
     <nav className="sticky bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="mx-auto flex max-w-md items-stretch justify-between px-2 py-1.5">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon }) => {
           const active = href === "/visitor" ? pathname === href : pathname.startsWith(href);
           return (
             <Link
