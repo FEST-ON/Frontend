@@ -1,0 +1,222 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { AlertCircle, CheckCircle2, MapPin } from "lucide-react";
+import { fetchMapLocations, type MapLocation } from "@/features/map/api/map-locations";
+
+type KakaoLatLng = object;
+type KakaoMap = object;
+type KakaoMarker = object;
+
+interface KakaoInfoWindow {
+  open: (map: KakaoMap, marker: KakaoMarker) => void;
+  setContent: (content: string) => void;
+}
+
+declare global {
+  interface Window {
+    kakao?: {
+      maps: {
+        load: (callback: () => void) => void;
+        LatLng: new (latitude: number, longitude: number) => KakaoLatLng;
+        Map: new (container: HTMLElement, options: { center: KakaoLatLng; level: number }) => KakaoMap;
+        Marker: new (options: { position: KakaoLatLng; map: KakaoMap; title?: string }) => KakaoMarker;
+        InfoWindow: new (options: { content: string; removable?: boolean }) => KakaoInfoWindow;
+        event: {
+          addListener: (target: KakaoMarker, type: "click", handler: () => void) => void;
+        };
+      };
+    };
+  }
+}
+
+let kakaoSdkPromise: Promise<void> | null = null;
+
+function loadKakaoSdk(appKey: string) {
+  if (window.kakao?.maps) {
+    return new Promise<void>((resolve) => window.kakao!.maps.load(resolve));
+  }
+  if (kakaoSdkPromise) return kakaoSdkPromise;
+
+  kakaoSdkPromise = new Promise<void>((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>("script[data-kakao-map-sdk]");
+    const script = existingScript ?? document.createElement("script");
+
+    const handleLoad = () => {
+      if (!window.kakao?.maps) {
+        reject(new Error("Kakao Maps SDK did not initialize."));
+        return;
+      }
+      window.kakao.maps.load(resolve);
+    };
+
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", () => reject(new Error("Kakao Maps SDK failed to load.")), {
+      once: true,
+    });
+
+    if (!existingScript) {
+      script.dataset.kakaoMapSdk = "true";
+      script.async = true;
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false`;
+      document.head.appendChild(script);
+    }
+  }).catch((error) => {
+    kakaoSdkPromise = null;
+    throw error;
+  });
+
+  return kakaoSdkPromise;
+}
+
+function congestionLabel(level: string) {
+  if (level === "crowded") return "혼잡";
+  if (level === "normal") return "보통";
+  if (level === "free") return "여유";
+  return level;
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "'": "&#39;",
+      '"': "&quot;",
+    };
+    return entities[character];
+  });
+}
+
+export function FestivalMap() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [locations, setLocations] = useState<MapLocation[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "missing-key" | "error">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function initializeMap() {
+      const rows = await fetchMapLocations();
+      if (cancelled) return;
+      setLocations(rows);
+      setSelectedLocation(rows[0] ?? null);
+
+      const appKey = process.env.NEXT_PUBLIC_KAKAO_MAP_APP_KEY?.trim();
+      if (!appKey) {
+        setStatus("missing-key");
+        return;
+      }
+
+      try {
+        await loadKakaoSdk(appKey);
+        if (cancelled || !containerRef.current || !window.kakao?.maps || rows.length === 0) return;
+
+        const kakaoMaps = window.kakao.maps;
+        const center = new kakaoMaps.LatLng(rows[0].latitude, rows[0].longitude);
+        const map = new kakaoMaps.Map(containerRef.current, { center, level: 4 });
+        const infoWindow = new kakaoMaps.InfoWindow({ content: "", removable: true });
+        rows.forEach((location) => {
+          const marker = new kakaoMaps.Marker({
+            map,
+            position: new kakaoMaps.LatLng(location.latitude, location.longitude),
+            title: location.name,
+          });
+
+          kakaoMaps.event.addListener(marker, "click", () => {
+            const label = congestionLabel(location.congestion_level);
+            infoWindow.setContent(
+              `<div style="min-width:132px;padding:9px 12px;color:#111;font-size:12px;font-weight:700;white-space:nowrap;text-align:center">${escapeHtml(location.name)}<div style="margin-top:3px;color:#64748b;font-size:10px;font-weight:600">혼잡도 ${escapeHtml(label)}</div></div>`,
+            );
+            infoWindow.open(map, marker);
+            setSelectedLocation(location);
+          });
+        });
+
+        setStatus("ready");
+      } catch (error) {
+        console.error("Kakao Maps initialization failed.", error);
+        if (!cancelled) setStatus("error");
+      }
+    }
+
+    initializeMap();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <section className="mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="relative h-64 bg-muted" aria-label="여의도 한강공원 축제 지도">
+        <div ref={containerRef} className="absolute inset-0" />
+
+        {status === "loading" && (
+          <div className="absolute inset-0 grid place-items-center bg-muted text-xs font-semibold text-muted-foreground">
+            카카오 지도를 불러오는 중입니다.
+          </div>
+        )}
+
+        {(status === "missing-key" || status === "error") && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted px-6 text-center">
+            <span className="grid size-11 place-items-center rounded-full bg-background text-primary shadow-sm">
+              <AlertCircle className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm font-bold text-foreground">
+                {status === "missing-key" ? "카카오 지도 키 설정이 필요합니다" : "카카오 지도를 불러오지 못했습니다"}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                {status === "missing-key"
+                  ? ".env.local에 NEXT_PUBLIC_KAKAO_MAP_APP_KEY를 등록하면 실제 지도가 표시됩니다."
+                  : "JavaScript 키와 localhost:3300 도메인 등록 상태를 확인해주세요."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-[10px] font-bold text-foreground shadow-sm">
+          {status === "ready" ? <CheckCircle2 className="size-3 text-emerald-600" /> : <MapPin className="size-3" />}
+          {status === "ready" ? "Kakao Map 연결됨" : "축제장 위치"}
+        </span>
+      </div>
+
+      {selectedLocation && (
+        <div className="flex items-start gap-3 border-t border-border p-3">
+          <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+            <MapPin className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate text-sm font-bold text-foreground">{selectedLocation.name}</p>
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                {congestionLabel(selectedLocation.congestion_level)}
+              </span>
+            </div>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {selectedLocation.description ?? "축제장 주요 위치입니다."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {status !== "ready" && locations.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto border-t border-border px-3 py-2 [scrollbar-width:none]">
+          {locations.map((location) => (
+            <button
+              key={location.id}
+              type="button"
+              onClick={() => setSelectedLocation(location)}
+              className="shrink-0 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground"
+            >
+              {location.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
