@@ -7,7 +7,7 @@ import { VisitorTopbar } from "@/widgets/visitor-nav/visitor-topbar";
 
 export function VisitorShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isImmersiveAiGuide = pathname === "/visitor/ai-guide-2";
+  const isImmersiveAiGuide = pathname === "/visitor/ai-guide" || pathname === "/visitor/ai-guide-2";
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background">
