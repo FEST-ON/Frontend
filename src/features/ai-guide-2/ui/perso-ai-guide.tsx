@@ -1,12 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useState, type FormEvent } from "react";
 import {
-  ArrowLeft,
   Bus,
   CalendarDays,
+  Keyboard,
   MapPin,
   Mic,
   RotateCcw,
@@ -31,22 +30,22 @@ const EXPECTED_QUESTIONS = [
 ] as const;
 
 export function PersoAiGuide() {
-  const router = useRouter();
   const { messages, isTyping, addMessage, setTyping, reset } = usePersoChatStore();
   const { language, largeText, voiceGuide } = useAccessibilityStore();
-  const bottomRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState("");
+  const [showTextInput, setShowTextInput] = useState(false);
+
+  const latestAssistantMessage = [...messages].reverse().find((message) => message.role === "assistant");
+  const latestUserMessage = [...messages].reverse().find((message) => message.role === "user");
 
   const estimatedConversationHeight = messages.slice(-3).reduce((height, message) => {
     const charactersPerLine = largeText ? 27 : 38;
     const lineHeight = largeText ? 26 : 20;
     return height + 34 + Math.ceil(message.content.length / charactersPerLine) * lineHeight;
   }, 0);
-  const chatPanelHeight = Math.min(430, Math.max(292, 200 + estimatedConversationHeight));
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  const chatPanelHeight = showTextInput
+    ? Math.min(470, Math.max(400, 290 + estimatedConversationHeight))
+    : Math.min(450, Math.max(340, 240 + estimatedConversationHeight));
 
   const handleAsk = useCallback((question: string) => {
     if (isTyping) return;
@@ -62,7 +61,6 @@ export function PersoAiGuide() {
   }, [addMessage, isTyping, setTyping]);
 
   const handleVoiceResult = useCallback((transcript: string) => {
-    setDraft("");
     handleAsk(transcript);
   }, [handleAsk]);
 
@@ -96,15 +94,6 @@ export function PersoAiGuide() {
       />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-linear-to-b from-slate-950/10 via-slate-950/5 to-slate-950/50" />
 
-      <button
-        type="button"
-        aria-label="이전 화면으로 돌아가기"
-        onClick={() => router.back()}
-        className="absolute left-4 top-4 z-30 flex size-10 items-center justify-center rounded-full border border-white/20 bg-slate-950/40 text-white backdrop-blur-md transition hover:bg-slate-950/60"
-      >
-        <ArrowLeft className="size-5" />
-      </button>
-
       <div className="absolute left-1/2 top-4 z-30 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-white/20 bg-slate-950/45 px-3 py-2 text-[11px] font-semibold text-white/90 backdrop-blur-md">
         <Volume2 className="size-3.5 text-cyan-300" />
         음성 안내 준비됨
@@ -135,34 +124,25 @@ export function PersoAiGuide() {
             WebkitMaskImage: "linear-gradient(to bottom, transparent 0, black 36px, black 100%)",
           }}
         >
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
-            >
-              <div
-                className={cn(
-                  "max-w-[84%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-line shadow-sm",
-                  largeText && "text-base leading-loose",
-                  message.role === "user"
-                    ? "rounded-br-md bg-primary text-primary-foreground"
-                    : "rounded-bl-md border border-white/55 bg-white/78 text-card-foreground backdrop-blur-md dark:border-white/10 dark:bg-slate-900/72",
-                )}
-              >
-                {message.role === "assistant" && (
-                  <span className="mb-1 flex items-center gap-1 text-[10px] font-bold text-primary">
-                    <Sparkles className="size-3" /> PERSO
-                  </span>
-                )}
-                {message.content}
-                {message.sources && message.sources.length > 0 && (
-                  <p className="mt-1.5 border-t border-border/70 pt-1.5 text-[9px] opacity-60">
-                    출처 · {message.sources.join(", ")}
-                  </p>
-                )}
-              </div>
+          {latestUserMessage && (
+            <p className="text-center text-[10px] font-semibold text-slate-700/75 dark:text-white/65">
+              인식된 질문 · “{latestUserMessage.content}”
+            </p>
+          )}
+
+          {latestAssistantMessage && (
+            <div className="rounded-2xl border border-white/55 bg-white/78 px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-line text-card-foreground shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-slate-900/72">
+              <span className="mb-1 flex items-center gap-1 text-[10px] font-bold text-primary">
+                <Sparkles className="size-3" /> PERSO 안내
+              </span>
+              {latestAssistantMessage.content}
+              {latestAssistantMessage.sources && latestAssistantMessage.sources.length > 0 && (
+                <p className="mt-1.5 border-t border-border/70 pt-1.5 text-[9px] opacity-60">
+                  출처 · {latestAssistantMessage.sources.join(", ")}
+                </p>
+              )}
             </div>
-          ))}
+          )}
 
           {isTyping && (
             <div className="flex justify-start">
@@ -177,51 +157,77 @@ export function PersoAiGuide() {
               </div>
             </div>
           )}
-          <div ref={bottomRef} />
         </div>
 
         <div className="relative z-30 shrink-0 bg-transparent px-4 pb-2 pt-1.5">
-          <form
-            onSubmit={handleSubmit}
-            className={cn(
-              "flex items-center gap-1.5 rounded-2xl border border-white/60 bg-white/82 p-1.5 shadow-sm backdrop-blur-md transition dark:border-white/10 dark:bg-slate-900/78",
-              isListening && "border-red-400/70 ring-2 ring-red-400/15",
+          <div className="flex flex-col items-center pb-1">
+            <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center">
+              <span aria-hidden="true" />
+              <button
+                type="button"
+                onClick={isListening ? stopListening : startListening}
+                disabled={isTyping || !isSpeechSupported}
+                aria-label={isListening ? "음성인식 중지" : "음성으로 질문하기"}
+                aria-pressed={isListening}
+                className={cn(
+                  "relative flex size-16 shrink-0 items-center justify-center rounded-full border-4 border-white/80 text-white shadow-[0_8px_24px_rgba(37,99,235,0.35)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35",
+                  isListening ? "bg-red-500 hover:bg-red-600" : "bg-primary hover:bg-primary/90",
+                )}
+              >
+                {isListening && <span className="absolute -inset-2 animate-ping rounded-full border-2 border-red-400/45" />}
+                {isListening ? <Square className="relative size-5 fill-current" /> : <Mic className="size-7" />}
+              </button>
+
+              <div className="flex justify-start pl-3">
+                <button
+                  type="button"
+                  onClick={() => setShowTextInput((visible) => !visible)}
+                  disabled={isListening}
+                  aria-label={showTextInput ? "키보드 입력 닫기" : "키보드로 질문하기"}
+                  aria-expanded={showTextInput}
+                  aria-controls="perso-text-question"
+                  className={cn(
+                    "flex size-13 shrink-0 items-center justify-center rounded-full border-2 border-white/75 shadow-sm backdrop-blur-md transition active:scale-95 disabled:opacity-40",
+                    showTextInput
+                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                      : "bg-white/82 text-slate-700 hover:bg-white dark:bg-slate-900/78 dark:text-white",
+                  )}
+                >
+                  <Keyboard className="size-5" />
+                </button>
+              </div>
+            </div>
+
+            <p className="mt-1.5 min-h-4 text-center text-[10px] font-semibold text-foreground/80">
+              {isListening ? interimTranscript || "듣고 있어요…" : "마이크를 눌러 질문하세요"}
+            </p>
+
+            {showTextInput && (
+              <form
+                id="perso-text-question"
+                onSubmit={handleSubmit}
+                className="mt-2 flex w-full items-center gap-1.5 rounded-2xl border border-white/65 bg-white/88 p-1.5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-slate-900/82"
+              >
+                <input
+                  autoFocus
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  disabled={isTyping}
+                  aria-label="Perso AI에게 텍스트로 질문하기"
+                  placeholder="질문을 입력하세요"
+                  className="min-w-0 flex-1 bg-transparent px-2 text-[12px] font-medium text-foreground outline-none placeholder:text-muted-foreground/75"
+                />
+                <button
+                  type="submit"
+                  disabled={!draft.trim() || isTyping}
+                  aria-label="질문 전송"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <SendHorizontal className="size-4" />
+                </button>
+              </form>
             )}
-          >
-            <input
-              value={isListening ? interimTranscript : draft}
-              onChange={(event) => setDraft(event.target.value)}
-              disabled={isTyping || isListening}
-              aria-label="Perso AI에게 질문하기"
-              placeholder={isListening ? "듣고 있어요..." : "말하거나 직접 질문하세요"}
-              className={cn(
-                "min-w-0 flex-1 bg-transparent px-2 text-[12px] font-medium text-foreground outline-none placeholder:text-muted-foreground/75 disabled:opacity-80",
-                largeText && "text-sm",
-              )}
-            />
-            <button
-              type="button"
-              onClick={isListening ? stopListening : startListening}
-              disabled={isTyping || !isSpeechSupported}
-              aria-label={isListening ? "음성인식 중지" : "음성으로 질문하기"}
-              aria-pressed={isListening}
-              className={cn(
-                "relative flex size-9 shrink-0 items-center justify-center rounded-full text-white transition disabled:cursor-not-allowed disabled:opacity-35",
-                isListening ? "bg-red-500 hover:bg-red-600" : "bg-primary hover:bg-primary/90",
-              )}
-            >
-              {isListening && <span className="absolute inset-0 animate-ping rounded-full bg-red-400/35" />}
-              {isListening ? <Square className="relative size-3.5 fill-current" /> : <Mic className="size-4" />}
-            </button>
-            <button
-              type="submit"
-              disabled={!draft.trim() || isTyping || isListening}
-              aria-label="질문 전송"
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-white dark:text-slate-900"
-            >
-              <SendHorizontal className="size-4" />
-            </button>
-          </form>
+          </div>
 
           <p
             aria-live="polite"
@@ -267,3 +273,4 @@ export function PersoAiGuide() {
     </section>
   );
 }
+
