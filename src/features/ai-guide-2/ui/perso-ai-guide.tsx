@@ -1,14 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Bus,
   CalendarDays,
   MapPin,
+  Mic,
   RotateCcw,
+  SendHorizontal,
+  Square,
   Sparkles,
   Users,
   Volume2,
@@ -18,6 +21,7 @@ import { AccessibilitySheet } from "@/features/accessibility/ui/accessibility-sh
 import { useAccessibilityStore } from "@/features/accessibility/model/store";
 import { buildPersoMessage, generatePersoReply } from "../lib/generate-reply";
 import { usePersoChatStore } from "../model/chat-store";
+import { useSpeechRecognition } from "../model/use-speech-recognition";
 
 const EXPECTED_QUESTIONS = [
   { icon: Users, label: "지금 가장 혼잡한 곳은?" },
@@ -29,21 +33,22 @@ const EXPECTED_QUESTIONS = [
 export function PersoAiGuide() {
   const router = useRouter();
   const { messages, isTyping, addMessage, setTyping, reset } = usePersoChatStore();
-  const { largeText, voiceGuide } = useAccessibilityStore();
+  const { language, largeText, voiceGuide } = useAccessibilityStore();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [draft, setDraft] = useState("");
 
   const estimatedConversationHeight = messages.slice(-3).reduce((height, message) => {
     const charactersPerLine = largeText ? 27 : 38;
     const lineHeight = largeText ? 26 : 20;
     return height + 34 + Math.ceil(message.content.length / charactersPerLine) * lineHeight;
   }, 0);
-  const chatPanelHeight = Math.min(360, Math.max(210, 118 + estimatedConversationHeight));
+  const chatPanelHeight = Math.min(430, Math.max(292, 200 + estimatedConversationHeight));
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  function handleAsk(question: string) {
+  const handleAsk = useCallback((question: string) => {
     if (isTyping) return;
 
     addMessage(buildPersoMessage("user", question));
@@ -54,6 +59,29 @@ export function PersoAiGuide() {
       addMessage(buildPersoMessage("assistant", reply.content, reply.sources));
       setTyping(false);
     }, 650);
+  }, [addMessage, isTyping, setTyping]);
+
+  const handleVoiceResult = useCallback((transcript: string) => {
+    setDraft("");
+    handleAsk(transcript);
+  }, [handleAsk]);
+
+  const {
+    error: speechError,
+    interimTranscript,
+    isListening,
+    isSupported: isSpeechSupported,
+    startListening,
+    stopListening,
+  } = useSpeechRecognition({ language, onFinalResult: handleVoiceResult });
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const question = draft.trim();
+    if (!question || isTyping || isListening) return;
+
+    setDraft("");
+    handleAsk(question);
   }
 
   return (
@@ -153,6 +181,64 @@ export function PersoAiGuide() {
         </div>
 
         <div className="relative z-30 shrink-0 bg-transparent px-4 pb-2 pt-1.5">
+          <form
+            onSubmit={handleSubmit}
+            className={cn(
+              "flex items-center gap-1.5 rounded-2xl border border-white/60 bg-white/82 p-1.5 shadow-sm backdrop-blur-md transition dark:border-white/10 dark:bg-slate-900/78",
+              isListening && "border-red-400/70 ring-2 ring-red-400/15",
+            )}
+          >
+            <input
+              value={isListening ? interimTranscript : draft}
+              onChange={(event) => setDraft(event.target.value)}
+              disabled={isTyping || isListening}
+              aria-label="Perso AI에게 질문하기"
+              placeholder={isListening ? "듣고 있어요..." : "말하거나 직접 질문하세요"}
+              className={cn(
+                "min-w-0 flex-1 bg-transparent px-2 text-[12px] font-medium text-foreground outline-none placeholder:text-muted-foreground/75 disabled:opacity-80",
+                largeText && "text-sm",
+              )}
+            />
+            <button
+              type="button"
+              onClick={isListening ? stopListening : startListening}
+              disabled={isTyping || !isSpeechSupported}
+              aria-label={isListening ? "음성인식 중지" : "음성으로 질문하기"}
+              aria-pressed={isListening}
+              className={cn(
+                "relative flex size-9 shrink-0 items-center justify-center rounded-full text-white transition disabled:cursor-not-allowed disabled:opacity-35",
+                isListening ? "bg-red-500 hover:bg-red-600" : "bg-primary hover:bg-primary/90",
+              )}
+            >
+              {isListening && <span className="absolute inset-0 animate-ping rounded-full bg-red-400/35" />}
+              {isListening ? <Square className="relative size-3.5 fill-current" /> : <Mic className="size-4" />}
+            </button>
+            <button
+              type="submit"
+              disabled={!draft.trim() || isTyping || isListening}
+              aria-label="질문 전송"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-white dark:text-slate-900"
+            >
+              <SendHorizontal className="size-4" />
+            </button>
+          </form>
+
+          <p
+            aria-live="polite"
+            className={cn(
+              "min-h-4 px-1 pt-1 text-[9px] font-medium text-muted-foreground",
+              speechError && "text-red-600 dark:text-red-300",
+              isListening && "text-red-600 dark:text-red-300",
+            )}
+          >
+            {speechError ??
+              (isListening
+                ? "음성을 인식하고 있어요. 질문이 끝나면 자동으로 전송됩니다."
+                : isSpeechSupported
+                  ? "마이크를 누르고 질문하면 인식 후 자동으로 전송돼요."
+                  : "현재 브라우저에서는 텍스트 질문을 이용해주세요.")}
+          </p>
+
           <p className={cn("mb-1.5 text-[10px] font-bold tracking-[0.12em] text-muted-foreground", largeText && "text-xs")}>
             예상 질문
           </p>
