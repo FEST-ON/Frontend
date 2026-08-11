@@ -20,7 +20,7 @@ export function VisitorShell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </main>
-      {!isImmersiveAiGuide && <VisitorNav />}
+      <VisitorNav />
     </div>
   );
 }
