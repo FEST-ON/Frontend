@@ -4,17 +4,18 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, MapPin, Sparkles, Ticket, Stamp, ClipboardList, ArrowRight } from "lucide-react";
 import { fetchCongestion, fetchFestivalInfo, fetchSchedule } from "@/entities/festival";
+import { useAccessibilityStore } from "@/features/accessibility/model/store";
 import { Badge } from "@/shared/ui/badge";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { CongestionList } from "@/widgets/congestion-map/congestion-list";
 
 const QUICK_MENU = [
-  { href: "/visitor/ai-guide", label: "AI 안내", icon: Sparkles, tone: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300" },
-  { href: "/visitor/schedule", label: "전체일정", icon: CalendarDays, tone: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300" },
-  { href: "/visitor/map", label: "지도·시설", icon: MapPin, tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" },
-  { href: "/visitor/reservation", label: "예약·대기", icon: Ticket, tone: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" },
-  { href: "/visitor/stamp-tour", label: "스탬프투어", icon: Stamp, tone: "bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300" },
-  { href: "/visitor/survey", label: "만족도조사", icon: ClipboardList, tone: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300" },
+  { href: "/visitor/ai-guide", label: "AI 안내", icon: Sparkles, tone: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300", kiosk: true },
+  { href: "/visitor/schedule", label: "전체일정", icon: CalendarDays, tone: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300", kiosk: false },
+  { href: "/visitor/map", label: "지도·시설", icon: MapPin, tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300", kiosk: true },
+  { href: "/visitor/reservation", label: "예약·대기", icon: Ticket, tone: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300", kiosk: false },
+  { href: "/visitor/stamp-tour", label: "스탬프투어", icon: Stamp, tone: "bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300", kiosk: false },
+  { href: "/visitor/survey", label: "만족도조사", icon: ClipboardList, tone: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300", kiosk: false },
 ] as const;
 
 function getGreeting() {
@@ -25,6 +26,8 @@ function getGreeting() {
 }
 
 export default function VisitorHomePage() {
+  const visitorMode = useAccessibilityStore((state) => state.visitorMode);
+  const quickMenu = visitorMode === "kiosk" ? QUICK_MENU.filter((item) => item.kiosk) : QUICK_MENU;
   const { data: festival } = useQuery({ queryKey: ["festival-info"], queryFn: fetchFestivalInfo });
   const { data: schedule } = useQuery({ queryKey: ["schedule"], queryFn: fetchSchedule });
   const { data: congestion, isLoading: congestionLoading } = useQuery({
@@ -62,8 +65,8 @@ export default function VisitorHomePage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        {QUICK_MENU.map(({ href, label, icon: Icon, tone }) => (
+      <div className={visitorMode === "kiosk" ? "grid grid-cols-2 gap-3" : "grid grid-cols-3 gap-3"}>
+        {quickMenu.map(({ href, label, icon: Icon, tone }) => (
           <Link
             key={href}
             href={href}
@@ -94,28 +97,30 @@ export default function VisitorHomePage() {
         )}
       </section>
 
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-foreground">오늘의 프로그램</h3>
-          <Link href="/visitor/schedule" className="inline-flex items-center gap-0.5 text-xs font-medium text-primary">
-            전체일정 <ArrowRight className="size-3" />
-          </Link>
-        </div>
-        <div className="space-y-2">
-          {(schedule ?? []).slice(0, 3).map((item) => (
-            <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-              <div className="flex w-14 shrink-0 flex-col items-center">
-                <span className="text-sm font-bold text-primary">{item.time}</span>
+      {visitorMode === "qr" && (
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground">오늘의 프로그램</h3>
+            <Link href="/visitor/schedule" className="inline-flex items-center gap-0.5 text-xs font-medium text-primary">
+              전체일정 <ArrowRight className="size-3" />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {(schedule ?? []).slice(0, 3).map((item) => (
+              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                <div className="flex w-14 shrink-0 flex-col items-center">
+                  <span className="text-sm font-bold text-primary">{item.time}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
+                  <p className="text-xs text-muted-foreground">{item.stage}</p>
+                </div>
+                <Badge variant="outline" className="shrink-0 text-[10px]">{item.category}</Badge>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
-                <p className="text-xs text-muted-foreground">{item.stage}</p>
-              </div>
-              <Badge variant="outline" className="shrink-0 text-[10px]">{item.category}</Badge>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
