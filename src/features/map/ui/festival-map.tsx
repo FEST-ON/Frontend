@@ -31,6 +31,7 @@ declare global {
 }
 
 let kakaoSdkPromise: Promise<void> | null = null;
+let kakaoSdkFailureReported = false;
 
 function loadKakaoSdk(appKey: string) {
   if (window.kakao?.maps) {
@@ -61,9 +62,6 @@ function loadKakaoSdk(appKey: string) {
       script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false`;
       document.head.appendChild(script);
     }
-  }).catch((error) => {
-    kakaoSdkPromise = null;
-    throw error;
   });
 
   return kakaoSdkPromise;
@@ -137,7 +135,10 @@ export function FestivalMap() {
 
         setStatus("ready");
       } catch (error) {
-        console.error("Kakao Maps initialization failed.", error);
+        if (!kakaoSdkFailureReported) {
+          console.info("Kakao Maps SDK is unavailable. Showing festival location data instead.", error);
+          kakaoSdkFailureReported = true;
+        }
         if (!cancelled) setStatus("error");
       }
     }
