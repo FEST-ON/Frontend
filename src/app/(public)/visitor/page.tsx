@@ -4,18 +4,26 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, MapPin, Sparkles, Ticket, Stamp, ClipboardList, ArrowRight } from "lucide-react";
 import { fetchCongestion, fetchFestivalInfo, fetchSchedule } from "@/entities/festival";
+import { useVisitorMenuSettingsStore } from "@/features/visitor-menu-settings/model/store";
+import type { VisitorMenuKey } from "@/features/visitor-menu-settings/model/store";
 import { Badge } from "@/shared/ui/badge";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { CongestionList } from "@/widgets/congestion-map/congestion-list";
 
-const QUICK_MENU = [
+const QUICK_MENU: {
+  href: string;
+  label: string;
+  icon: typeof Sparkles;
+  tone: string;
+  menuKey?: VisitorMenuKey;
+}[] = [
   { href: "/visitor/ai-guide", label: "AI 안내", icon: Sparkles, tone: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300" },
   { href: "/visitor/schedule", label: "전체일정", icon: CalendarDays, tone: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300" },
   { href: "/visitor/map", label: "지도·시설", icon: MapPin, tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" },
-  { href: "/visitor/reservation", label: "예약·대기", icon: Ticket, tone: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" },
-  { href: "/visitor/stamp-tour", label: "스탬프투어", icon: Stamp, tone: "bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300" },
-  { href: "/visitor/survey", label: "만족도조사", icon: ClipboardList, tone: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300" },
-] as const;
+  { href: "/visitor/reservation", label: "예약·대기", icon: Ticket, tone: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300", menuKey: "reservation" },
+  { href: "/visitor/stamp-tour", label: "스탬프투어", icon: Stamp, tone: "bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300", menuKey: "stampTour" },
+  { href: "/visitor/survey", label: "만족도조사", icon: ClipboardList, tone: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300", menuKey: "survey" },
+];
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -31,6 +39,8 @@ export default function VisitorHomePage() {
     queryKey: ["congestion"],
     queryFn: fetchCongestion,
   });
+  const menuSettings = useVisitorMenuSettingsStore();
+  const quickMenu = QUICK_MENU.filter((item) => !item.menuKey || menuSettings[item.menuKey]);
 
   const today = new Date().toLocaleDateString("ko-KR", {
     year: "numeric",
@@ -63,7 +73,7 @@ export default function VisitorHomePage() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        {QUICK_MENU.map(({ href, label, icon: Icon, tone }) => (
+        {quickMenu.map(({ href, label, icon: Icon, tone }) => (
           <Link
             key={href}
             href={href}
