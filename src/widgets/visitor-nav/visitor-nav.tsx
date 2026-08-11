@@ -7,7 +7,7 @@ import { cn } from "@/shared/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/visitor", label: "홈", icon: Home },
-  { href: "/visitor/ai-guide-2", label: "AI안내", icon: Sparkles },
+  { href: "/visitor/ai-guide", label: "AI안내", icon: Sparkles },
   { href: "/visitor/map", label: "지도", icon: MapPin },
   { href: "/visitor/reservation", label: "예약", icon: Ticket },
   { href: "/visitor/stamp-tour", label: "스탬프", icon: Stamp },
