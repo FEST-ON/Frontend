@@ -3,23 +3,26 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Sparkles, MapPin, Ticket, Stamp } from "lucide-react";
+import { useAccessibilityStore } from "@/features/accessibility/model/store";
 import { cn } from "@/shared/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/visitor", label: "홈", icon: Home },
-  { href: "/visitor/ai-guide", label: "AI안내", icon: Sparkles },
-  { href: "/visitor/map", label: "지도", icon: MapPin },
-  { href: "/visitor/reservation", label: "예약", icon: Ticket },
-  { href: "/visitor/stamp-tour", label: "스탬프", icon: Stamp },
+  { href: "/visitor", label: "홈", icon: Home, kiosk: true },
+  { href: "/visitor/ai-guide", label: "AI안내", icon: Sparkles, kiosk: true },
+  { href: "/visitor/map", label: "지도", icon: MapPin, kiosk: true },
+  { href: "/visitor/reservation", label: "예약", icon: Ticket, kiosk: false },
+  { href: "/visitor/stamp-tour", label: "스탬프", icon: Stamp, kiosk: false },
 ] as const;
 
 export function VisitorNav() {
   const pathname = usePathname();
+  const visitorMode = useAccessibilityStore((state) => state.visitorMode);
+  const navItems = visitorMode === "kiosk" ? NAV_ITEMS.filter((item) => item.kiosk) : NAV_ITEMS;
 
   return (
     <nav className="sticky bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="mx-auto flex max-w-md items-stretch justify-between px-2 py-1.5">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon }) => {
           const active = href === "/visitor" ? pathname === href : pathname.startsWith(href);
           return (
             <Link
