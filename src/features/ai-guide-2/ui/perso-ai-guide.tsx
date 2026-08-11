@@ -37,7 +37,7 @@ export function PersoAiGuide() {
     const lineHeight = largeText ? 26 : 20;
     return height + 34 + Math.ceil(message.content.length / charactersPerLine) * lineHeight;
   }, 0);
-  const chatPanelHeight = Math.min(420, Math.max(248, 164 + estimatedConversationHeight));
+  const chatPanelHeight = Math.min(360, Math.max(210, 118 + estimatedConversationHeight));
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -152,11 +152,11 @@ export function PersoAiGuide() {
           <div ref={bottomRef} />
         </div>
 
-        <div className="relative z-30 shrink-0 bg-transparent px-4 pb-3 pt-2">
-          <p className={cn("mb-2 text-[10px] font-bold tracking-[0.12em] text-muted-foreground", largeText && "text-xs")}>
+        <div className="relative z-30 shrink-0 bg-transparent px-4 pb-2 pt-1.5">
+          <p className={cn("mb-1.5 text-[10px] font-bold tracking-[0.12em] text-muted-foreground", largeText && "text-xs")}>
             예상 질문
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {EXPECTED_QUESTIONS.map(({ icon: Icon, label }) => (
               <button
                 key={label}
@@ -164,7 +164,7 @@ export function PersoAiGuide() {
                 disabled={isTyping}
                 onClick={() => handleAsk(label)}
                 className={cn(
-                  "flex min-h-11 items-center gap-2 rounded-xl border border-white/55 bg-white/72 px-3 py-2 text-left text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-md transition hover:border-primary/40 hover:bg-white/90 disabled:opacity-50 dark:border-white/10 dark:bg-slate-900/68",
+                  "flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border border-white/55 bg-white/72 px-3 py-1.5 text-left text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-md transition hover:border-primary/40 hover:bg-white/90 disabled:opacity-50 dark:border-white/10 dark:bg-slate-900/68",
                   largeText && "text-sm",
                 )}
               >
