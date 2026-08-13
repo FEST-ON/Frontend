@@ -29,7 +29,7 @@ import {
 
 const EMPTY_FORM: MapLocationInput = {
   name: "",
-  category: "booth",
+  category: "BOOTH",
   latitude: 37.5266,
   longitude: 126.9338,
   description: "",
@@ -111,6 +111,7 @@ export function MapLocationAdminPanel() {
       longitude: location.longitude,
       description: location.description,
       is_visible: location.is_visible,
+      version: location.version,
     });
     setDialogOpen(true);
   }

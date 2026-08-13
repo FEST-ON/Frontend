@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { Sparkles, Volume2, RotateCcw, MapPin, Car, Bus, ShieldCheck, CalendarDays, Compass, Recycle } from "lucide-react";
+import { Sparkles, Volume2, RotateCcw, MapPin, Car, Bus, Users, ShieldCheck, CalendarDays, Compass, Recycle } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { cn } from "@/shared/lib/utils";
 import { useChatStore } from "../model/chat-store";
@@ -9,7 +9,7 @@ import { buildMessage, generateReply } from "../lib/generate-reply";
 import { useAccessibilityStore } from "@/features/accessibility/model/store";
 
 const FAQ_ITEMS = [
-  { icon: MapPin, label: "축제 부스 위치 알려줘" },
+  { icon: Users, label: "지금 어디가 가장 혼잡한가요?" },
   { icon: Car, label: "주차장 이용 안내해줘" },
   { icon: Bus, label: "셔틀버스는 어떻게 타나요?" },
   { icon: MapPin, label: "화장실은 어디에 있나요?" },
@@ -28,24 +28,27 @@ export function ChatPanel() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  function handleAsk(text: string) {
+  async function handleAsk(text: string) {
     if (isTyping) return;
     addMessage(buildMessage("user", text));
     setTyping(true);
-    setTimeout(() => {
-      const { content, sources } = generateReply(text);
+    try {
+      const { content, sources } = await generateReply(text);
       addMessage(buildMessage("assistant", content, sources));
+    } catch (error) {
+      addMessage(buildMessage("assistant", error instanceof Error ? error.message : "답변을 불러오지 못했습니다."));
+    } finally {
       setTyping(false);
-    }, 700);
+    }
   }
 
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex items-center gap-1.5 px-4 pb-2">
         <Badge variant="secondary" className="gap-1 text-[10px]">
-          <Sparkles className="size-3 text-primary" /> Powered by Perso AI
+          <Sparkles className="size-3 text-primary" /> 승인 콘텐츠 기반 AI
         </Badge>
-        <Badge variant="outline" className="text-[10px] text-muted-foreground">앨런(Alan) 연동 예정</Badge>
+        <Badge variant="outline" className="text-[10px] text-muted-foreground">백엔드 실시간 연동</Badge>
         {voiceGuide && (
           <Badge variant="outline" className="gap-1 text-[10px] text-muted-foreground">
             <Volume2 className="size-3" /> 음성안내 ON

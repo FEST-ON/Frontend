@@ -16,9 +16,9 @@ const TRANSPORT_ICON = {
 } as const;
 
 const STATUS_STYLE = {
-  운행중: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
-  이용가능: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
-  만차임박: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+  원활: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
+  보통: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+  혼잡: "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300",
   지연: "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300",
 } as const;
 

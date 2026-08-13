@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, LayoutDashboard, Users2, Ticket, Sparkles, Leaf } from "lucide-react";
+import { Menu, LayoutDashboard, Users2, Ticket, Sparkles, Leaf, MapPinned } from "lucide-react";
 import { Logo } from "@/shared/ui/logo";
 import { Button } from "@/shared/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/shared/ui/sheet";
 import { cn } from "@/shared/lib/utils";
+import { AdminLogoutButton } from "./admin-sidebar";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "운영 대시보드", icon: LayoutDashboard },
   { href: "/admin/programs", label: "통합 운영관리", icon: Users2 },
+  { href: "/admin/map-locations", label: "지도·부스 설정", icon: MapPinned },
   { href: "/admin/tickets", label: "민원·공지·사고", icon: Ticket },
   { href: "/admin/ai-insights", label: "AI 민원 인사이트", icon: Sparkles },
   { href: "/admin/esg", label: "ESG 성과관리", icon: Leaf },
@@ -19,6 +21,7 @@ const NAV_ITEMS = [
 const TITLES: Record<string, string> = {
   "/admin": "운영 대시보드",
   "/admin/programs": "통합 운영관리",
+  "/admin/map-locations": "지도·부스 설정",
   "/admin/tickets": "민원·공지·사고 티켓",
   "/admin/ai-insights": "AI 민원 인사이트",
   "/admin/esg": "ESG 성과관리",
@@ -58,6 +61,7 @@ export function AdminTopbar() {
                   </Link>
                 );
               })}
+              <AdminLogoutButton showLabel className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70" />
             </nav>
           </SheetContent>
         </Sheet>

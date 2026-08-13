@@ -32,5 +32,5 @@ export interface TransportOption {
   mode: "지하철" | "버스" | "셔틀" | "주차";
   label: string;
   detail: string;
-  status: "운행중" | "이용가능" | "만차임박" | "지연";
+  status: "원활" | "보통" | "혼잡" | "지연";
 }

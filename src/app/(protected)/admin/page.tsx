@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarCheck, DoorOpen, Hourglass, Ticket as TicketIcon, ArrowRight, MapPinned } from "lucide-react";
+import { CalendarCheck, Users, Store, Ticket as TicketIcon, ArrowRight, MapPinned } from "lucide-react";
 import { fetchOpsSnapshot } from "@/widgets/dashboard-stats/data";
 import { fetchTickets } from "@/entities/ticket";
 import { fetchOperationResources } from "@/entities/program";
 import { StatCard } from "@/shared/ui/stat-card";
 import { Badge } from "@/shared/ui/badge";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { NotificationAdminPanel } from "@/features/notification/ui/notification-admin-panel";
 import { FestivalBriefCard } from "@/features/festival-brief/ui/festival-brief-card";
 
 const PRIORITY_STYLE = {
@@ -26,8 +25,6 @@ export default function AdminDashboardPage() {
   const openTickets = (tickets ?? []).filter((t) => t.status !== "완료").slice(0, 4);
   const issueResources = (resources ?? []).filter((r) => r.status === "이슈");
 
-  const maxHourly = Math.max(...(ops?.hourlyEntries.map((h) => h.count) ?? [1]));
-
   return (
     <div className="space-y-6">
       <FestivalBriefCard />
@@ -40,36 +37,21 @@ export default function AdminDashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="오늘 예약" value={ops.reservationsToday.toLocaleString()} helper="누적 예약 건수" icon={CalendarCheck} tone="primary" />
-          <StatCard label="오늘 입장" value={ops.entryToday.toLocaleString()} helper="QR 체크인 기준" icon={DoorOpen} />
-          <StatCard label="평균 대기" value={`${ops.avgWaitMinutes}분`} helper="전체 프로그램 평균" icon={Hourglass} />
-          <StatCard label="쿠폰 발급/사용" value={`${ops.couponsIssued} / ${ops.couponsUsed}`} helper="지역상권 디지털 쿠폰" icon={TicketIcon} />
+          <StatCard label="방문 세션" value={ops.visitors.toLocaleString()} helper="백엔드 누적 방문 세션" icon={Users} tone="primary" />
+          <StatCard label="진행 중 예약" value={ops.active_bookings.toLocaleString()} helper="확정·대기·호출 상태" icon={CalendarCheck} />
+          <StatCard label="처리 필요 티켓" value={ops.open_tickets.toLocaleString()} helper="미해결 민원·사고" icon={TicketIcon} />
+          <StatCard label="승인 참여업체" value={ops.approved_businesses.toLocaleString()} helper="축제 참여 승인 완료" icon={Store} />
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-foreground">시간대별 입장 현황</h2>
-            <span className="text-xs text-muted-foreground">오늘 기준</span>
-          </div>
-          {opsLoading || !ops ? (
-            <Skeleton className="h-40 w-full" />
-          ) : (
-            <div className="flex h-40 items-end gap-2.5">
-              {ops.hourlyEntries.map((h) => (
-                <div key={h.hour} className="flex flex-1 flex-col items-center gap-1.5">
-                  <div className="flex h-32 w-full items-end overflow-hidden rounded-md bg-muted">
-                    <div
-                      className="w-full rounded-md bg-primary transition-all"
-                      style={{ height: `${(h.count / maxHourly) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">{h.hour}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center justify-between"><h2 className="text-sm font-bold">데이터 연동 상태</h2><Badge variant="outline">LIVE API</Badge></div>
+          {opsLoading || !ops ? <Skeleton className="mt-4 h-24 w-full" /> : <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl bg-muted/60 p-4"><p className="text-xs text-muted-foreground">쿠폰 발급</p><p className="mt-1 text-2xl font-extrabold">{ops.coupon_issues.toLocaleString()}</p></div>
+            <div className="rounded-xl bg-muted/60 p-4"><p className="text-xs text-muted-foreground">ESG 포인트 발급</p><p className="mt-1 text-2xl font-extrabold">{ops.points_issued.toLocaleString()}P</p></div>
+            <p className="sm:col-span-2 text-[11px] text-muted-foreground">근거 테이블: {ops.sources.join(" · ")}</p>
+          </div>}
         </div>
 
         <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5">
@@ -128,7 +110,6 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <NotificationAdminPanel />
     </div>
   );
 }

@@ -17,7 +17,7 @@ import {
 import { cn } from "@/shared/lib/utils";
 import { AccessibilitySheet } from "@/features/accessibility/ui/accessibility-sheet";
 import { useAccessibilityStore } from "@/features/accessibility/model/store";
-import { buildPersoMessage, generatePersoReply } from "../lib/generate-reply";
+import { buildPersoMessage, generatePersoReply, resetPersoConversation } from "../lib/generate-reply";
 import { usePersoChatStore } from "../model/chat-store";
 import { useSpeechRecognition } from "../model/use-speech-recognition";
 
@@ -46,17 +46,20 @@ export function PersoAiGuide() {
     ? Math.min(470, Math.max(400, 290 + estimatedConversationHeight))
     : Math.min(450, Math.max(340, 240 + estimatedConversationHeight));
 
-  const handleAsk = useCallback((question: string) => {
+  const handleAsk = useCallback(async (question: string) => {
     if (isTyping) return;
 
     addMessage(buildPersoMessage("user", question));
     setTyping(true);
 
-    window.setTimeout(() => {
-      const reply = generatePersoReply(question);
+    try {
+      const reply = await generatePersoReply(question);
       addMessage(buildPersoMessage("assistant", reply.content, reply.sources));
+    } catch (error) {
+      addMessage(buildPersoMessage("assistant", error instanceof Error ? error.message : "안내 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."));
+    } finally {
       setTyping(false);
-    }, 650);
+    }
   }, [addMessage, isTyping, setTyping]);
 
   const handleVoiceResult = useCallback((transcript: string) => {
@@ -103,7 +106,7 @@ export function PersoAiGuide() {
         <button
           type="button"
           aria-label="대화 새로고침"
-          onClick={reset}
+          onClick={() => { resetPersoConversation(); reset(); }}
           className="flex size-10 items-center justify-center rounded-full border border-white/20 bg-slate-950/40 text-white backdrop-blur-md transition hover:bg-slate-950/60"
         >
           <RotateCcw className="size-4" />
