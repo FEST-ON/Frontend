@@ -1,51 +1,63 @@
-import { congestionZones, facilities, scheduleItems, transportOptions } from "@/entities/festival";
+import { getCongestionZones, getFacilities, getScheduleItems, getTransportOptions } from "@/entities/festival";
 import type { ChatMessage } from "@/entities/visitor";
+import type { Dictionary, Locale } from "@/shared/lib/i18n";
+import { BCP47_BY_LOCALE } from "@/shared/lib/i18n";
 
 interface ReplyResult {
   content: string;
   sources: string[];
 }
 
-export function generatePersoReply(question: string): ReplyResult {
+const CONGESTION_KEYWORDS = /(혼잡|대기|사람|crowd|busy|wait|拥挤|排队|人多|混雑|待ち|込)/i;
+const TRANSPORT_KEYWORDS = /(주차|셔틀|버스|교통|shuttle|bus|parking|transport|地铁|公交|接驳|停车|交通|シャトル|バス|駐車|交通)/i;
+const FACILITY_KEYWORDS = /(화장실|수유실|구급|편의시설|restroom|toilet|facility|nursing|洗手间|设施|哺乳|お手洗い|施設|授乳)/i;
+const SCHEDULE_KEYWORDS = /(일정|공연|프로그램|오늘|schedule|program|today|日程|节目|今日|プログラム|本日)/i;
+
+export async function generatePersoReply(question: string, t: Dictionary, locale: Locale): Promise<ReplyResult> {
   const query = question.toLowerCase();
 
-  if (/(혼잡|대기|사람)/.test(query)) {
-    const busiest = [...congestionZones].sort((a, b) => b.waitMinutes - a.waitMinutes)[0];
+  if (CONGESTION_KEYWORDS.test(query)) {
+    const busiest = [...(await getCongestionZones(locale))].sort((a, b) => b.waitMinutes - a.waitMinutes)[0];
     return {
-      content: `현재 ${busiest.zone}이 가장 혼잡해요. 평균 대기는 ${busiest.waitMinutes}분이며, 여유 구역부터 둘러보시는 걸 추천드려요.`,
-      sources: ["실시간 혼잡도 데이터"],
+      content: t.aiGuide.replies.congestion(busiest.zone, busiest.waitMinutes),
+      sources: [t.aiGuide.replies.congestionSource],
     };
   }
 
-  if (/(주차|셔틀|버스|교통)/.test(query)) {
+  if (TRANSPORT_KEYWORDS.test(query)) {
+    const transportOptions = await getTransportOptions(locale);
     return {
-      content: transportOptions.map((item) => `${item.mode} · ${item.label} (${item.status})`).join("\n"),
-      sources: ["운영 승인 교통정보"],
+      content: transportOptions
+        .map((item) => t.aiGuide.replies.transportLine(t.festivalData.transportMode[item.mode], item.label, t.festivalData.transportStatus[item.status]))
+        .join("\n"),
+      sources: [t.aiGuide.replies.transportSource],
     };
   }
 
-  if (/(화장실|수유실|구급|편의시설)/.test(query)) {
+  if (FACILITY_KEYWORDS.test(query)) {
+    const facilities = await getFacilities(locale);
     return {
       content: facilities
         .slice(0, 3)
-        .map((item) => `${item.name} · ${item.location}, 도보 ${item.walkMinutes}분`)
+        .map((item) => t.aiGuide.replies.facilityLine(item.name, item.location, item.walkMinutes))
         .join("\n"),
-      sources: ["시설 승인 데이터"],
+      sources: [t.aiGuide.replies.facilitySource],
     };
   }
 
-  if (/(일정|공연|프로그램|오늘)/.test(query)) {
+  if (SCHEDULE_KEYWORDS.test(query)) {
+    const scheduleItems = await getScheduleItems(locale);
     return {
       content: scheduleItems
         .slice(0, 3)
-        .map((item) => `${item.time} · ${item.title} (${item.stage})`)
+        .map((item) => t.aiGuide.replies.scheduleLine(item.time, item.title, item.stage))
         .join("\n"),
-      sources: ["승인된 축제 프로그램 일정"],
+      sources: [t.aiGuide.replies.scheduleSource],
     };
   }
 
   return {
-    content: "아래 예상 질문을 선택하면 축제 운영 데이터를 기준으로 바로 안내해드릴게요.",
+    content: t.aiGuide.replies.fallback,
     sources: [],
   };
 }
@@ -53,13 +65,14 @@ export function generatePersoReply(question: string): ReplyResult {
 export function buildPersoMessage(
   role: ChatMessage["role"],
   content: string,
+  locale: Locale,
   sources?: string[],
 ): ChatMessage {
   return {
     id: `perso-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     role,
     content,
-    timestamp: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
+    timestamp: new Date().toLocaleTimeString(BCP47_BY_LOCALE[locale], { hour: "2-digit", minute: "2-digit" }),
     sources,
   };
 }

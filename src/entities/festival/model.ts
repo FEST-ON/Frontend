@@ -40,5 +40,5 @@ export interface CongestionZone {
   zone: string;
   level: "여유" | "보통" | "혼잡";
   waitMinutes: number;
-  updatedAt: string;
+  updatedMinutesAgo: number;
 }

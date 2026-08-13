@@ -21,7 +21,7 @@ const PRIORITY_STYLE = {
 
 export default function AdminDashboardPage() {
   const { data: ops, isLoading: opsLoading } = useQuery({ queryKey: ["ops-snapshot"], queryFn: fetchOpsSnapshot });
-  const { data: congestion } = useQuery({ queryKey: ["congestion"], queryFn: fetchCongestion });
+  const { data: congestion } = useQuery({ queryKey: ["congestion"], queryFn: () => fetchCongestion() });
   const { data: tickets } = useQuery({ queryKey: ["tickets"], queryFn: fetchTickets });
   const { data: resources } = useQuery({ queryKey: ["operation-resources"], queryFn: fetchOperationResources });
 
@@ -78,7 +78,7 @@ export default function AdminDashboardPage() {
             <h2 className="text-sm font-bold text-foreground">실시간 혼잡 현황</h2>
             <Link href="/admin/programs" className="text-xs font-medium text-primary">구역관리</Link>
           </div>
-          {!congestion ? <Skeleton className="h-40 w-full" /> : <CongestionList zones={congestion} />}
+          {!congestion ? <Skeleton className="h-40 w-full" /> : <CongestionList zones={congestion} locale="ko" />}
         </div>
       </div>
 

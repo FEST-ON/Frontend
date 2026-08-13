@@ -7,6 +7,7 @@ import {
   fetchFacilities,
   fetchTransport,
 } from "@/entities/festival";
+import { useTranslation } from "@/shared/lib/i18n";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Badge } from "@/shared/ui/badge";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -27,26 +28,27 @@ const STATUS_STYLE = {
 } as const;
 
 export default function VisitorMapPage() {
+  const { t, locale } = useTranslation();
   const { data: congestion, isLoading: cLoading } = useQuery({
-    queryKey: ["congestion"],
-    queryFn: fetchCongestion,
+    queryKey: ["congestion", locale] as const,
+    queryFn: () => fetchCongestion(locale),
   });
   const { data: facilities, isLoading: fLoading } = useQuery({
     queryKey: ["facilities"],
     queryFn: fetchFacilities,
   });
   const { data: transport, isLoading: tLoading } = useQuery({
-    queryKey: ["transport"],
-    queryFn: fetchTransport,
+    queryKey: ["transport", locale] as const,
+    queryFn: () => fetchTransport(locale),
   });
 
   return (
     <div className="px-4 pt-4 pb-6">
       <h1 className="text-lg font-extrabold text-foreground">
-        디지털 지도 · 시설정보
+        {t.map.title}
       </h1>
       <p className="text-xs text-muted-foreground">
-        실시간 혼잡도와 편의시설, 교통정보를 확인하세요
+        {t.map.subtitle}
       </p>
 
       <div className="relative mt-4 h-48 overflow-hidden rounded-2xl border border-border bg-[#f7f8f5]">
@@ -98,22 +100,22 @@ export default function VisitorMapPage() {
         </span>
         <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-sm">
           <MapPin className="size-3" />
-          지도 목업 (데모 이미지)
+          {t.map.mockBadge}
         </span>
       </div>
 
       <Tabs defaultValue="congestion" className="mt-4">
         <TabsList className="grid grid-cols-3">
-          <TabsTrigger value="congestion">혼잡도</TabsTrigger>
-          <TabsTrigger value="facility">편의시설</TabsTrigger>
-          <TabsTrigger value="transport">교통</TabsTrigger>
+          <TabsTrigger value="congestion">{t.map.tabs.congestion}</TabsTrigger>
+          <TabsTrigger value="facility">{t.map.tabs.facility}</TabsTrigger>
+          <TabsTrigger value="transport">{t.map.tabs.transport}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="congestion" className="mt-3 space-y-2.5">
           {cLoading || !congestion ? (
             <Skeleton className="h-40 w-full rounded-xl" />
           ) : (
-            <CongestionList zones={congestion} />
+            <CongestionList zones={congestion} locale={locale} />
           )}
         </TabsContent>
 
@@ -134,10 +136,10 @@ export default function VisitorMapPage() {
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <Badge variant="outline" className="text-[10px]">
-                    {f.type}
+                    {t.festivalData.facilityType[f.type]}
                   </Badge>
                   <span className="text-[11px] text-muted-foreground">
-                    도보 {f.walkMinutes}분
+                    {t.map.walkMinutes(f.walkMinutes)}
                   </span>
                 </div>
               </div>
@@ -149,11 +151,11 @@ export default function VisitorMapPage() {
           {tLoading || !transport ? (
             <Skeleton className="h-40 w-full rounded-xl" />
           ) : (
-            transport.map((t) => {
-              const Icon = TRANSPORT_ICON[t.mode];
+            transport.map((item) => {
+              const Icon = TRANSPORT_ICON[item.mode];
               return (
                 <div
-                  key={t.id}
+                  key={item.id}
                   className="flex items-start gap-3 rounded-xl border border-border bg-card p-3"
                 >
                   <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-primary dark:bg-blue-950">
@@ -161,14 +163,14 @@ export default function VisitorMapPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-foreground">
-                      {t.label}
+                      {item.label}
                     </p>
-                    <p className="text-xs text-muted-foreground">{t.detail}</p>
+                    <p className="text-xs text-muted-foreground">{item.detail}</p>
                   </div>
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_STYLE[t.status]}`}
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_STYLE[item.status]}`}
                   >
-                    {t.status}
+                    {t.festivalData.transportStatus[item.status]}
                   </span>
                 </div>
               );
