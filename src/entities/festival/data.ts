@@ -138,16 +138,17 @@ export async function fetchFestivalInfo(locale: Locale = "ko") {
     id: string; name: string; description: string; starts_at: string; ends_at: string; updated_at: string;
   }>(`/public/festivals/${FESTIVAL_CODE}`);
   const text = dictionaries[locale].festivalData;
+  const translated = await translateEntries({ name: festival.name, description: festival.description }, locale);
   return {
     id: festival.id,
-    name: festival.name,
-    subtitle: festival.description,
+    name: translated.name ?? festival.name,
+    subtitle: translated.description ?? festival.description,
     location: text.fallbackLocation,
     period: { start: festival.starts_at.slice(0, 10), end: festival.ends_at.slice(0, 10) },
     hours: text.fallbackHours,
     organizer: text.fallbackOrganizer,
     approvedAt: festival.updated_at.slice(0, 10),
-    description: festival.description,
+    description: translated.description ?? festival.description,
   } satisfies FestivalInfo;
 }
 export async function fetchSchedule(locale: Locale = "ko") {
@@ -159,30 +160,45 @@ export async function fetchSchedule(locale: Locale = "ko") {
     performance: "공연", experience: "체험", exhibition: "전시", food: "푸드", event: "행사",
   };
   const bcp47 = BCP47_BY_LOCALE[locale];
-  return programs.flatMap((program) => program.sessions.map((session) => {
+  const sessions = programs.flatMap((program) => program.sessions.map((session) => ({ program, session })));
+  const koFields = Object.fromEntries(
+    sessions.flatMap(({ program, session }) => [
+      [`${session.id}.title`, program.title],
+      [`${session.id}.stage`, session.area.name],
+    ]),
+  );
+  const text = await translateEntries(koFields, locale);
+  return sessions.map(({ program, session }) => {
     const startsAt = new Date(session.startsAt);
     return {
       id: session.id,
       day: startsAt.toLocaleDateString(bcp47, { month: "numeric", day: "numeric", weekday: "short", timeZone: "Asia/Seoul" }),
       time: startsAt.toLocaleTimeString(bcp47, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" }),
-      title: program.title,
-      stage: session.area.name,
+      title: text[`${session.id}.title`] ?? program.title,
+      stage: text[`${session.id}.stage`] ?? session.area.name,
       category: categories[program.category] ?? "행사",
     } satisfies ScheduleItem;
-  }));
+  });
 }
-export async function fetchFacilities() {
+export async function fetchFacilities(locale: Locale = "ko") {
   const rows = await publicApi<Array<{
     id: string; name: string; facility_type: string; area: { name: string };
   }>>(`/public/festivals/${FESTIVAL_CODE}/facilities`);
   const types: Record<string, FacilityInfo["type"]> = {
     RESTROOM: "화장실", PARKING: "주차장", FIRST_AID: "구급실", INFO: "안내소", NURSING_ROOM: "수유실", STORAGE: "물품보관소",
   };
+  const koFields = Object.fromEntries(
+    rows.flatMap((row) => [
+      [`${row.id}.name`, row.name],
+      [`${row.id}.location`, row.area.name],
+    ]),
+  );
+  const text = await translateEntries(koFields, locale);
   return rows.map((row) => ({
     id: row.id,
-    name: row.name,
+    name: text[`${row.id}.name`] ?? row.name,
     type: types[row.facility_type] ?? "안내소",
-    location: row.area.name,
+    location: text[`${row.id}.location`] ?? row.area.name,
     walkMinutes: 0,
   }));
 }

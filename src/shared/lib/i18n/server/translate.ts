@@ -1,17 +1,12 @@
 import { createHash } from "node:crypto";
-import { generateText, Output } from "ai";
-import { z } from "zod";
 import type { Locale } from "../locale";
 
-// Verify this model slug against `curl https://ai-gateway.vercel.sh/v1/models`
-// once AI_GATEWAY_API_KEY is configured — pick the newest available Haiku-class model.
-const TRANSLATION_MODEL = "anthropic/claude-haiku-4-5";
-
-const LOCALE_NAME: Record<Locale, string> = {
-  ko: "Korean",
-  en: "English",
-  zh: "Simplified Chinese",
-  ja: "Japanese",
+// Google Cloud Translation API (Basic/v2) language codes.
+const GOOGLE_LANGUAGE_CODE: Record<Locale, string> = {
+  ko: "ko",
+  en: "en",
+  zh: "zh-CN",
+  ja: "ja",
 };
 
 function hashEntries(entries: Record<string, string>) {
@@ -51,10 +46,38 @@ async function writeCache(key: string, locale: Locale, value: Record<string, str
   }
 }
 
+interface GoogleTranslateResponse {
+  data: { translations: Array<{ translatedText: string }> };
+}
+
+async function callGoogleTranslate(texts: string[], locale: Locale): Promise<string[]> {
+  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
+  if (!apiKey) throw new Error("GOOGLE_TRANSLATE_API_KEY is not set");
+
+  const res = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      q: texts,
+      source: "ko",
+      target: GOOGLE_LANGUAGE_CODE[locale],
+      format: "text",
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Google Translate API error (${res.status}): ${body}`);
+  }
+
+  const body = (await res.json()) as GoogleTranslateResponse;
+  return body.data.translations.map((t) => t.translatedText);
+}
+
 /**
- * Translates a flat map of { key: koreanText } into the target locale using an LLM,
- * caching results by (locale, content hash) so identical admin-authored content is
- * only ever translated once.
+ * Translates a flat map of { key: koreanText } into the target locale using
+ * Google Cloud Translation, caching results by (locale, content hash) so
+ * identical admin-authored content is only ever translated once.
  */
 export async function translateEntries(
   entries: Record<string, string>,
@@ -68,17 +91,9 @@ export async function translateEntries(
   const cached = await readCache(cacheKey);
   if (cached) return cached;
 
-  const schema = z.object(Object.fromEntries(keys.map((key) => [key, z.string()])));
-
-  const { output } = await generateText({
-    model: TRANSLATION_MODEL,
-    output: Output.object({ schema }),
-    system:
-      `You translate short UI/content strings for a Korean local festival visitor app from Korean into ${LOCALE_NAME[locale]}. ` +
-      "Keep translations natural, concise, and appropriate for mobile app copy. Preserve place names, brand names, and numbers " +
-      "sensibly. Return a translation for every key you are given — do not omit or add keys.",
-    prompt: JSON.stringify(entries),
-  });
+  const texts = keys.map((key) => entries[key]);
+  const translatedTexts = await callGoogleTranslate(texts, locale);
+  const output = Object.fromEntries(keys.map((key, index) => [key, translatedTexts[index] ?? entries[key]]));
 
   await writeCache(cacheKey, locale, output);
   return output;

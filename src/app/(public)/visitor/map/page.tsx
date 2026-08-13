@@ -34,8 +34,8 @@ export default function VisitorMapPage() {
     queryFn: () => fetchCongestion(locale),
   });
   const { data: facilities, isLoading: fLoading } = useQuery({
-    queryKey: ["facilities"],
-    queryFn: fetchFacilities,
+    queryKey: ["facilities", locale] as const,
+    queryFn: () => fetchFacilities(locale),
   });
   const { data: transport, isLoading: tLoading } = useQuery({
     queryKey: ["transport", locale] as const,
