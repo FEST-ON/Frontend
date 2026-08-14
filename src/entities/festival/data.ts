@@ -4,7 +4,6 @@ import { BCP47_BY_LOCALE, dictionaries } from "@/shared/lib/i18n";
 import type { Locale } from "@/shared/lib/i18n";
 import { translateEntries } from "@/shared/lib/i18n/translate-client";
 import type {
-  CongestionZone,
   FacilityInfo,
   FestivalInfo,
   ScheduleItem,
@@ -59,15 +58,6 @@ const TRANSPORT_BASE: Array<
   { id: "t4", mode: "주차", status: "혼잡", label: "여의나루 임시주차장 (사전예약)", detail: "잔여 42면 / 200면" },
 ];
 
-const CONGESTION_BASE: Array<
-  Pick<CongestionZone, "id" | "level" | "waitMinutes" | "updatedMinutesAgo"> & { zone: string }
-> = [
-  { id: "c1", level: "혼잡", waitMinutes: 18, updatedMinutesAgo: 0, zone: "메인스테이지" },
-  { id: "c2", level: "보통", waitMinutes: 8, updatedMinutesAgo: 2, zone: "그린마켓 · 푸드존" },
-  { id: "c3", level: "여유", waitMinutes: 2, updatedMinutesAgo: 1, zone: "체험존 A (업사이클링)" },
-  { id: "c4", level: "여유", waitMinutes: 0, updatedMinutesAgo: 0, zone: "전시홀" },
-];
-
 export async function getScheduleItems(locale: Locale): Promise<ScheduleItem[]> {
   const bcp47 = BCP47_BY_LOCALE[locale];
   const koFields = Object.fromEntries(
@@ -118,18 +108,6 @@ export async function getTransportOptions(locale: Locale): Promise<TransportOpti
     status: item.status,
     label: text[`${item.id}.label`] ?? item.label,
     detail: text[`${item.id}.detail`] ?? item.detail,
-  }));
-}
-
-export async function getCongestionZones(locale: Locale): Promise<CongestionZone[]> {
-  const koFields = Object.fromEntries(CONGESTION_BASE.map((item) => [`${item.id}.zone`, item.zone]));
-  const text = await translateEntries(koFields, locale);
-  return CONGESTION_BASE.map((item) => ({
-    id: item.id,
-    level: item.level,
-    waitMinutes: item.waitMinutes,
-    updatedMinutesAgo: item.updatedMinutesAgo,
-    zone: text[`${item.id}.zone`] ?? item.zone,
   }));
 }
 
@@ -204,7 +182,4 @@ export async function fetchFacilities(locale: Locale = "ko") {
 }
 export async function fetchTransport(locale: Locale = "ko") {
   return delay(await getTransportOptions(locale), 450);
-}
-export async function fetchCongestion(locale: Locale = "ko") {
-  return delay(await getCongestionZones(locale), 350);
 }

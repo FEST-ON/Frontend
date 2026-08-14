@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import {
   Bus,
   CalendarDays,
+  CheckCircle2,
+  Flag,
   Keyboard,
   MapPin,
   Mic,
@@ -19,7 +21,8 @@ import { cn } from "@/shared/lib/utils";
 import { AccessibilitySheet } from "@/features/accessibility/ui/accessibility-sheet";
 import { useAccessibilityStore } from "@/features/accessibility/model/store";
 import { useTranslation } from "@/shared/lib/i18n";
-import { buildPersoMessage, generatePersoReply } from "../lib/generate-reply";
+import { buildPersoMessage, generatePersoReply, resetPersoConversation } from "../lib/generate-reply";
+import { reportAiMessage } from "@/features/ai-guide/lib/generate-reply";
 import { usePersoChatStore, WELCOME_MESSAGE_ID } from "../model/chat-store";
 import { useSpeechRecognition } from "../model/use-speech-recognition";
 
@@ -36,6 +39,7 @@ export function PersoAiGuide() {
   const { language, largeText, voiceGuide } = useAccessibilityStore();
   const [draft, setDraft] = useState("");
   const [showTextInput, setShowTextInput] = useState(false);
+  const [reportStatus, setReportStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
 
   const welcomeMessage = useMemo(
     () => ({
@@ -64,22 +68,37 @@ export function PersoAiGuide() {
     ? Math.min(470, Math.max(400, 290 + estimatedConversationHeight))
     : Math.min(450, Math.max(340, 240 + estimatedConversationHeight));
 
-  const handleAsk = useCallback((question: string) => {
+  const handleAsk = useCallback(async (question: string) => {
     if (isTyping) return;
 
-    addMessage(buildPersoMessage("user", question, locale));
+    addMessage(buildPersoMessage("user", question, undefined, undefined, locale));
     setTyping(true);
+    setReportStatus("idle");
 
-    window.setTimeout(async () => {
-      const reply = await generatePersoReply(question, t, locale);
-      addMessage(buildPersoMessage("assistant", reply.content, locale, reply.sources));
+    try {
+      const reply = await generatePersoReply(question, locale);
+      addMessage(buildPersoMessage("assistant", reply.content, reply.sources, reply.messageId, locale));
+    } catch {
+      addMessage(buildPersoMessage("assistant", t.aiGuide.replyFailed, undefined, undefined, locale));
+    } finally {
       setTyping(false);
-    }, 650);
+    }
   }, [addMessage, isTyping, setTyping, t, locale]);
 
   const handleVoiceResult = useCallback((transcript: string) => {
-    handleAsk(transcript);
+    void handleAsk(transcript);
   }, [handleAsk]);
+
+  async function reportLatestAnswer() {
+    if (!latestAssistantMessage?.backendMessageId || reportStatus === "pending") return;
+    setReportStatus("pending");
+    try {
+      await reportAiMessage(latestAssistantMessage.backendMessageId);
+      setReportStatus("done");
+    } catch {
+      setReportStatus("error");
+    }
+  }
 
   const {
     error: speechError,
@@ -121,7 +140,7 @@ export function PersoAiGuide() {
         <button
           type="button"
           aria-label={t.aiGuide.resetAria}
-          onClick={() => reset(welcomeMessage)}
+          onClick={() => { resetPersoConversation(); reset(welcomeMessage); setReportStatus("idle"); }}
           className="flex size-10 items-center justify-center rounded-full border border-white/20 bg-slate-950/40 text-white backdrop-blur-md transition hover:bg-slate-950/60"
         >
           <RotateCcw className="size-4" />
@@ -158,6 +177,20 @@ export function PersoAiGuide() {
                   {t.aiGuide.sourcePrefix}{latestAssistantMessage.sources.join(", ")}
                 </p>
               )}
+              {latestAssistantMessage.backendMessageId && (
+                <div className="mt-2 flex items-center justify-end border-t border-border/70 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => void reportLatestAnswer()}
+                    disabled={reportStatus === "pending" || reportStatus === "done"}
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                  >
+                    {reportStatus === "done" ? <CheckCircle2 className="size-3" /> : <Flag className="size-3" />}
+                    {reportStatus === "pending" ? t.aiGuide.reportPending : reportStatus === "done" ? t.aiGuide.reportDone : t.aiGuide.reportAction}
+                  </button>
+                </div>
+              )}
+              {reportStatus === "error" && <p className="mt-1 text-right text-[9px] text-red-600">{t.aiGuide.reportFailed}</p>}
             </div>
           )}
 
