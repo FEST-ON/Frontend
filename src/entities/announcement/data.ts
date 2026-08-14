@@ -1,4 +1,4 @@
-import { adminApi, adminFestivalId } from "@/shared/lib/api";
+import { FESTIVAL_CODE, adminApi, adminFestivalId, publicApi } from "@/shared/lib/api";
 import type { Announcement, AnnouncementSeverity, AnnouncementStatus } from "./model";
 
 interface AnnouncementRow {
@@ -10,8 +10,8 @@ interface AnnouncementRow {
   starts_at?: string;
   ends_at?: string | null;
   status?: AnnouncementStatus;
+  effective_status?: AnnouncementStatus;
   version: number;
-  versions?: Array<{ id: string }>;
 }
 
 function normalize(row: AnnouncementRow): Announcement {
@@ -23,18 +23,36 @@ function normalize(row: AnnouncementRow): Announcement {
     targetAreaIds: row.target_area_ids ?? [],
     startsAt: row.starts_at ?? "",
     endsAt: row.ends_at ?? null,
-    status: row.status ?? "DRAFT",
+    status: row.effective_status ?? row.status ?? "DRAFT",
     version: row.version,
   };
 }
 
 export async function fetchAnnouncements() {
   const festivalId = await adminFestivalId();
-  const ids = await adminApi<Array<{ id: string }>>(`/admin/festivals/${festivalId}/announcements`);
-  const rows = await Promise.all(
-    ids.map((row) => adminApi<AnnouncementRow>(`/admin/festivals/${festivalId}/announcements/${row.id}`)),
-  );
+  const rows = await adminApi<AnnouncementRow[]>(`/admin/festivals/${festivalId}/announcements`);
   return rows.map(normalize).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+}
+
+export interface VisitorAnnouncement {
+  id: string;
+  title: string;
+  severity: AnnouncementSeverity;
+  startsAt: string;
+  body: { title?: string; description?: string } | null;
+}
+
+export async function fetchVisitorAnnouncements(): Promise<VisitorAnnouncement[]> {
+  const rows = await publicApi<Array<AnnouncementRow & { body?: VisitorAnnouncement["body"] }>>(
+    `/public/festivals/${FESTIVAL_CODE}/announcements`,
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    severity: row.severity ?? "INFO",
+    startsAt: row.starts_at ?? "",
+    body: row.body ?? null,
+  }));
 }
 
 export async function fetchAreaOptions() {
@@ -61,6 +79,8 @@ export interface PublishAnnouncementInput {
   endsAt?: string;
 }
 
+// ponytail: 중간 단계가 실패하면 DRAFT 공지와 콘텐츠 항목이 남는다. 방문객에게는 노출되지
+// 않고 삭제 API도 없어서 그대로 두었다. 정리가 필요해지면 백엔드에 DELETE를 요청할 것.
 export async function publishAnnouncement(input: PublishAnnouncementInput) {
   const festivalId = await adminFestivalId();
   const announcement = await step("1. 공지 생성", () =>
@@ -69,7 +89,8 @@ export async function publishAnnouncement(input: PublishAnnouncementInput) {
       body: JSON.stringify({ title: input.title }),
     }));
 
-  const slug = `announcement-${announcement.id.slice(0, 8)}`;
+  // slug는 축제 단위로 유일해야 하므로 uuid를 통째로 쓴다(앞 8자리는 재시도 시 충돌 가능).
+  const slug = `announcement-${announcement.id}`;
   const contentItem = await step("2. 콘텐츠 아이템 생성", () =>
     adminApi<{ id: string }>(`/admin/festivals/${festivalId}/content-items`, {
       method: "POST",
@@ -90,7 +111,7 @@ export async function publishAnnouncement(input: PublishAnnouncementInput) {
   await step("5. 검수 승인", () =>
     adminApi(`/admin/festivals/${festivalId}/content-versions/${version.id}/reviews`, {
       method: "POST",
-      body: JSON.stringify({ decision: "APPROVED", comment: "긴급 공지 자동 승인" }),
+      body: JSON.stringify({ decision: "APPROVED", comment: "현장 공지 자동 승인" }),
     }));
 
   return step("6. 공지 발행", () =>

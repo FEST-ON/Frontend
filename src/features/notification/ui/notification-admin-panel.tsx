@@ -7,10 +7,13 @@ import { useNotificationStore } from "@/features/notification/model/store";
 import {
   AUDIENCE_OPTIONS,
   SEVERITY_OPTIONS,
+  STATUS_LABEL,
+  canClose,
   closeAnnouncement,
   fetchAnnouncements,
   fetchAreaOptions,
   publishAnnouncement,
+  validatePublishInput,
   type AnnouncementSeverity,
 } from "@/entities/announcement";
 import { Button } from "@/shared/ui/button";
@@ -30,6 +33,12 @@ function toggleValue(list: string[], value: string) {
 function toDatetimeLocal(date: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+// datetime-local 입력이 브라우저 로컬 시간이므로 표시도 같은 기준으로 맞춘다.
+function formatMoment(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString("ko-KR");
 }
 
 export function NotificationAdminPanel() {
@@ -71,7 +80,8 @@ export function NotificationAdminPanel() {
   const [program, setProgram] = useState("");
   const [location, setLocation] = useState("");
 
-  const canPublish = title.trim().length > 0 && audience.length > 0 && startsAt.length > 0 && !publishMutation.isPending;
+  const validationError = validatePublishInput({ title, audience, startsAt, endsAt });
+  const canPublish = !validationError && !publishMutation.isPending;
 
   function publishNotice(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -113,7 +123,7 @@ export function NotificationAdminPanel() {
           </p>
         </div>
         <span className="text-xs font-medium text-muted-foreground">
-          현재 {announcements.length + reservationCalls.length}건
+          현재 {announcements.filter((item) => canClose(item.status)).length + reservationCalls.length}건
         </span>
       </div>
 
@@ -203,6 +213,7 @@ export function NotificationAdminPanel() {
               <Input
                 id="notice-ends-at"
                 type="datetime-local"
+                min={startsAt}
                 value={endsAt}
                 onChange={(event) => setEndsAt(event.target.value)}
               />
@@ -212,7 +223,10 @@ export function NotificationAdminPanel() {
             비워두면 직접 종료할 때까지 노출돼요. 설정하면 해당 시각 이후 자동으로 노출이 해제돼요.
           </p>
 
-          <div className="flex justify-end pt-1">
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+            {validationError && (
+              <p className="mr-auto text-xs text-muted-foreground">{validationError}</p>
+            )}
             <Button type="submit" size="sm" disabled={!canPublish}>
               <Send className="size-3.5" />
               공지 발행
@@ -287,11 +301,12 @@ export function NotificationAdminPanel() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{announcement.title}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {announcement.status} · {new Date(announcement.startsAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
-                    {announcement.endsAt && ` ~ ${new Date(announcement.endsAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}`}
+                    {STATUS_LABEL[announcement.status]}
+                    {announcement.startsAt && ` · ${formatMoment(announcement.startsAt)}`}
+                    {announcement.endsAt && ` ~ ${formatMoment(announcement.endsAt)}`}
                   </p>
                 </div>
-                {announcement.status === "PUBLISHED" && (
+                {canClose(announcement.status) && (
                   <Button
                     type="button"
                     variant="ghost"

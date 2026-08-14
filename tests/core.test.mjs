@@ -14,6 +14,7 @@ async function importTypeScript(path) {
 const { adminApi, logoutAdmin } = await importTypeScript("../src/shared/lib/api.ts");
 const { hasSurveyAnswer, surveyQuestionType } = await importTypeScript("../src/entities/visitor/model.ts");
 const { classifyTicket, nextTicketStatus } = await importTypeScript("../src/entities/ticket/model.ts");
+const { canClose, validatePublishInput } = await importTypeScript("../src/entities/announcement/model.ts");
 
 class MemoryStorage {
   #values = new Map();
@@ -121,4 +122,20 @@ test("운영 티켓은 배정부터 완료까지 순서대로 전이한다", () 
   assert.equal(nextTicketStatus("IN_PROGRESS"), "RESOLVED");
   assert.equal(nextTicketStatus("RESOLVED"), "CLOSED");
   assert.equal(nextTicketStatus("CLOSED"), undefined);
+});
+
+test("공지 발행 입력은 서버에 보내기 전에 걸러내고, 종료는 노출 중인 공지만 허용한다", () => {
+  const base = { title: "우천 안내", audience: ["VISITOR"], startsAt: "2026-08-14T10:00", endsAt: "" };
+  assert.equal(validatePublishInput(base), null);
+  assert.match(validatePublishInput({ ...base, title: "  " }), /공지 내용/);
+  assert.match(validatePublishInput({ ...base, audience: [] }), /노출 대상/);
+  assert.match(validatePublishInput({ ...base, startsAt: "" }), /노출 시작/);
+  assert.match(validatePublishInput({ ...base, endsAt: "2026-08-14T09:00" }), /노출 시작 이후/);
+  assert.equal(validatePublishInput({ ...base, endsAt: "2026-08-14T11:00" }), null);
+
+  assert.equal(canClose("ACTIVE"), true);
+  assert.equal(canClose("SCHEDULED"), true);
+  assert.equal(canClose("DRAFT"), false);
+  assert.equal(canClose("CLOSED"), false);
+  assert.equal(canClose("EXPIRED"), false);
 });

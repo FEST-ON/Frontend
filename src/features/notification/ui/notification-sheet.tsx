@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { Bell, CalendarClock, Check, Info, Megaphone } from "lucide-react";
 import { useNotificationStore } from "@/features/notification/model/store";
+import { fetchVisitorAnnouncements } from "@/entities/announcement";
 import { Button } from "@/shared/ui/button";
 import {
   Sheet,
@@ -15,7 +17,10 @@ import {
 } from "@/shared/ui/sheet";
 
 export function NotificationSheet() {
-  const notices = useNotificationStore((state) => state.notices);
+  const { data: notices = [] } = useQuery({
+    queryKey: ["visitor-announcements"],
+    queryFn: fetchVisitorAnnouncements,
+  });
   const reservationCalls = useNotificationStore(
     (state) => state.reservationCalls,
   );
@@ -131,7 +136,13 @@ export function NotificationSheet() {
 
           <section className="pt-5">
             <h3 className="mb-2 text-sm font-bold text-foreground">공지사항</h3>
-            <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+            {notices.length === 0 && (
+              <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border p-4 text-xs text-muted-foreground">
+                <Info className="size-4" />
+                지금 안내 중인 공지가 없어요.
+              </div>
+            )}
+            <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card empty:hidden">
               {notices.map((notice) => {
                 const isUnread = !readIds.includes(notice.id);
                 return (
@@ -147,9 +158,9 @@ export function NotificationSheet() {
                   >
                     <span
                       className={`mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-full ${
-                        notice.level === "중요"
-                          ? "bg-destructive/10 text-destructive"
-                          : "bg-secondary text-secondary-foreground"
+                        notice.severity === "INFO"
+                          ? "bg-secondary text-secondary-foreground"
+                          : "bg-destructive/10 text-destructive"
                       }`}
                     >
                       <Megaphone className="size-4" />
@@ -161,11 +172,13 @@ export function NotificationSheet() {
                           <span className="size-1.5 shrink-0 rounded-full bg-primary" />
                         )}
                       </span>
-                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                        {notice.description}
-                      </span>
+                      {notice.body?.description && (
+                        <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                          {notice.body.description}
+                        </span>
+                      )}
                       <span className="mt-1 block text-[11px] text-muted-foreground">
-                        {notice.createdAt}
+                        {new Date(notice.startsAt).toLocaleString("ko-KR")}
                       </span>
                     </span>
                   </button>
