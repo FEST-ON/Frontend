@@ -1,4 +1,4 @@
-import { FESTIVAL_CODE, adminApi, adminFestivalId, publicApi } from "@/shared/lib/api";
+import { adminApi, adminFestivalId } from "@/shared/lib/api";
 import type { Announcement, AnnouncementSeverity, AnnouncementStatus } from "./model";
 
 interface AnnouncementRow {
@@ -34,26 +34,7 @@ export async function fetchAnnouncements() {
   return rows.map(normalize).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
 }
 
-export interface VisitorAnnouncement {
-  id: string;
-  title: string;
-  severity: AnnouncementSeverity;
-  startsAt: string;
-  body: { title?: string; description?: string } | null;
-}
-
-export async function fetchVisitorAnnouncements(): Promise<VisitorAnnouncement[]> {
-  const rows = await publicApi<Array<AnnouncementRow & { body?: VisitorAnnouncement["body"] }>>(
-    `/public/festivals/${FESTIVAL_CODE}/announcements`,
-  );
-  return rows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    severity: row.severity ?? "INFO",
-    startsAt: row.starts_at ?? "",
-    body: row.body ?? null,
-  }));
-}
+// 방문객 공개 목록은 features/notification/api/notifications.ts가 이미 조회한다.
 
 export async function fetchAreaOptions() {
   const festivalId = await adminFestivalId();

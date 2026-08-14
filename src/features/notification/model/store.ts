@@ -7,12 +7,14 @@ export interface ReservationCall {
   program: string;
   location: string;
   createdAt: string;
+  /** ISO timestamp used to render a locale-aware relative time on the visitor side. */
+  createdAtIso: string;
 }
 
 // 공지는 서버가 관리한다(entities/announcement). 여기 남은 건 아직 API가 없는 예약 호출뿐.
 interface NotificationState {
   reservationCalls: ReservationCall[];
-  addReservationCall: (call: Omit<ReservationCall, "id" | "createdAt">) => void;
+  addReservationCall: (call: Omit<ReservationCall, "id" | "createdAt" | "createdAtIso">) => void;
   removeReservationCall: (id: string) => void;
 }
 
@@ -30,6 +32,7 @@ export const useNotificationStore = create<NotificationState>()(
           program: "드론라이트쇼 명당석",
           location: "예약 프로그램 입구",
           createdAt: "지금 호출됨",
+          createdAtIso: new Date().toISOString(),
         },
       ],
       addReservationCall: (call) =>
@@ -39,6 +42,7 @@ export const useNotificationStore = create<NotificationState>()(
               ...call,
               id: createId("reservation-call"),
               createdAt: "지금 호출됨",
+              createdAtIso: new Date().toISOString(),
             },
             ...state.reservationCalls,
           ],

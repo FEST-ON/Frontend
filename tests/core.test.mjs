@@ -15,6 +15,8 @@ const { adminApi, logoutAdmin } = await importTypeScript("../src/shared/lib/api.
 const { hasSurveyAnswer, surveyQuestionType } = await importTypeScript("../src/entities/visitor/model.ts");
 const { classifyTicket, nextTicketStatus } = await importTypeScript("../src/entities/ticket/model.ts");
 const { canClose, validatePublishInput } = await importTypeScript("../src/entities/announcement/model.ts");
+const { contentAction, contentPreview } = await importTypeScript("../src/features/content-review/model/content.ts");
+const { canAccessPath, visibleNavItems } = await importTypeScript("../src/shared/lib/permissions.ts");
 
 class MemoryStorage {
   #values = new Map();
@@ -138,4 +140,30 @@ test("공지 발행 입력은 서버에 보내기 전에 걸러내고, 종료는
   assert.equal(canClose("DRAFT"), false);
   assert.equal(canClose("CLOSED"), false);
   assert.equal(canClose("EXPIRED"), false);
+});
+
+test("콘텐츠 버전 상태에 맞는 다음 검수·게시 동작을 고른다", () => {
+  assert.equal(contentAction("DRAFT", false), "SUBMIT");
+  assert.equal(contentAction("IN_REVIEW", false), "REVIEW");
+  assert.equal(contentAction("APPROVED", false), "PUBLISH");
+  assert.equal(contentAction("APPROVED", true), "UNPUBLISH");
+  assert.equal(contentAction("REJECTED", false), undefined);
+  assert.equal(contentPreview({ summary: "축제 요약" }), "축제 요약");
+});
+
+test("검수자는 검수가 필요한 화면에 모두 접근할 수 있다", () => {
+  // 백엔드가 REVIEWER에게 열어둔 화면들 — 하나라도 막히면 검수자가 일을 못 한다
+  for (const path of ["/admin/content", "/admin/ai-insights", "/admin/esg"]) {
+    assert.equal(canAccessPath("REVIEWER", path), true, path);
+  }
+  assert.equal(canAccessPath("REVIEWER", "/admin/audit-logs"), false);
+  assert.deepEqual(
+    visibleNavItems("REVIEWER").map((item) => item.href),
+    ["/admin", "/admin/content", "/admin/ai-insights", "/admin/esg"],
+  );
+});
+
+test("역할이 없으면 관리자 화면에 접근할 수 없다", () => {
+  assert.equal(canAccessPath(undefined, "/admin"), false);
+  assert.equal(canAccessPath("MERCHANT", "/admin/audit-logs"), false);
 });
