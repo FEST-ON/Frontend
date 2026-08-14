@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { LayoutDashboard, Users2, Ticket, Sparkles, Leaf, History } from "lucide-react";
+import { LayoutDashboard, Users2, Ticket, Sparkles, Leaf, History, FileCheck2 } from "lucide-react";
 
 export type AdminRole = "SUPER_ADMIN" | "FESTIVAL_MANAGER" | "FIELD_OPERATOR" | "MERCHANT" | "REVIEWER";
 
@@ -26,6 +26,7 @@ export interface AdminNavItem {
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { href: "/admin", label: "운영 대시보드", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR", "REVIEWER"] },
   { href: "/admin/programs", label: "통합 운영관리", icon: Users2, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR"] },
+  { href: "/admin/content", label: "검수·게시 관리", icon: FileCheck2, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER"] },
   { href: "/admin/tickets", label: "민원·공지·사고", icon: Ticket, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR"] },
   { href: "/admin/ai-insights", label: "AI 민원 인사이트", icon: Sparkles, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER"] },
   { href: "/admin/esg", label: "ESG 성과관리", icon: Leaf, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER"] },
