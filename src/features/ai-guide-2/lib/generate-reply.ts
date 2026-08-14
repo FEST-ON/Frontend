@@ -6,6 +6,7 @@ export interface PersoReplyResult {
   sources: string[];
   safetyStatus: string;
   fallback: boolean;
+  messageId: string;
 }
 
 let conversationId: string | undefined;
@@ -17,6 +18,7 @@ export async function generatePersoReply(question: string): Promise<PersoReplyRe
   })).id;
 
   const response = await visitorApi<{
+    messageId: string;
     answer: string;
     safetyStatus: string;
     fallback: boolean;
@@ -31,15 +33,22 @@ export async function generatePersoReply(question: string): Promise<PersoReplyRe
     sources: response.sources.map((source) => source.title),
     safetyStatus: response.safetyStatus,
     fallback: response.fallback,
+    messageId: response.messageId,
   };
 }
 
 export function resetPersoConversation() { conversationId = undefined; }
 
-export function buildPersoMessage(role: ChatMessage["role"], content: string, sources?: string[]): ChatMessage {
+export function buildPersoMessage(
+  role: ChatMessage["role"],
+  content: string,
+  sources?: string[],
+  backendMessageId?: string,
+): ChatMessage {
   return {
     id: `perso-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     role,
+    backendMessageId,
     content,
     timestamp: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
     sources,

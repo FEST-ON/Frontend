@@ -5,6 +5,8 @@ import { useCallback, useState, type FormEvent } from "react";
 import {
   Bus,
   CalendarDays,
+  CheckCircle2,
+  Flag,
   Keyboard,
   MapPin,
   Mic,
@@ -18,6 +20,7 @@ import { cn } from "@/shared/lib/utils";
 import { AccessibilitySheet } from "@/features/accessibility/ui/accessibility-sheet";
 import { useAccessibilityStore } from "@/features/accessibility/model/store";
 import { buildPersoMessage, generatePersoReply, resetPersoConversation } from "../lib/generate-reply";
+import { reportAiMessage } from "@/features/ai-guide/lib/generate-reply";
 import { usePersoChatStore } from "../model/chat-store";
 import { useSpeechRecognition } from "../model/use-speech-recognition";
 
@@ -33,6 +36,7 @@ export function PersoAiGuide() {
   const { language, largeText, voiceGuide } = useAccessibilityStore();
   const [draft, setDraft] = useState("");
   const [showTextInput, setShowTextInput] = useState(false);
+  const [reportStatus, setReportStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
 
   const latestAssistantMessage = [...messages].reverse().find((message) => message.role === "assistant");
   const latestUserMessage = [...messages].reverse().find((message) => message.role === "user");
@@ -51,10 +55,11 @@ export function PersoAiGuide() {
 
     addMessage(buildPersoMessage("user", question));
     setTyping(true);
+    setReportStatus("idle");
 
     try {
       const reply = await generatePersoReply(question);
-      addMessage(buildPersoMessage("assistant", reply.content, reply.sources));
+      addMessage(buildPersoMessage("assistant", reply.content, reply.sources, reply.messageId));
     } catch (error) {
       addMessage(buildPersoMessage("assistant", error instanceof Error ? error.message : "안내 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."));
     } finally {
@@ -63,8 +68,19 @@ export function PersoAiGuide() {
   }, [addMessage, isTyping, setTyping]);
 
   const handleVoiceResult = useCallback((transcript: string) => {
-    handleAsk(transcript);
+    void handleAsk(transcript);
   }, [handleAsk]);
+
+  async function reportLatestAnswer() {
+    if (!latestAssistantMessage?.backendMessageId || reportStatus === "pending") return;
+    setReportStatus("pending");
+    try {
+      await reportAiMessage(latestAssistantMessage.backendMessageId);
+      setReportStatus("done");
+    } catch {
+      setReportStatus("error");
+    }
+  }
 
   const {
     error: speechError,
@@ -106,7 +122,7 @@ export function PersoAiGuide() {
         <button
           type="button"
           aria-label="대화 새로고침"
-          onClick={() => { resetPersoConversation(); reset(); }}
+          onClick={() => { resetPersoConversation(); reset(); setReportStatus("idle"); }}
           className="flex size-10 items-center justify-center rounded-full border border-white/20 bg-slate-950/40 text-white backdrop-blur-md transition hover:bg-slate-950/60"
         >
           <RotateCcw className="size-4" />
@@ -143,6 +159,20 @@ export function PersoAiGuide() {
                   출처 · {latestAssistantMessage.sources.join(", ")}
                 </p>
               )}
+              {latestAssistantMessage.backendMessageId && (
+                <div className="mt-2 flex items-center justify-end border-t border-border/70 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => void reportLatestAnswer()}
+                    disabled={reportStatus === "pending" || reportStatus === "done"}
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                  >
+                    {reportStatus === "done" ? <CheckCircle2 className="size-3" /> : <Flag className="size-3" />}
+                    {reportStatus === "pending" ? "접수 중…" : reportStatus === "done" ? "검토 요청됨" : "답변 오류 신고"}
+                  </button>
+                </div>
+              )}
+              {reportStatus === "error" && <p className="mt-1 text-right text-[9px] text-red-600">신고를 접수하지 못했습니다.</p>}
             </div>
           )}
 
