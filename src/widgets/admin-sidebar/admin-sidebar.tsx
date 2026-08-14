@@ -4,12 +4,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut } from "lucide-react";
+import { LayoutDashboard, Users2, FileCheck2, Ticket, Sparkles, Leaf, History, LogOut, type LucideIcon } from "lucide-react";
 import { Logo } from "@/shared/ui/logo";
 import { cn } from "@/shared/lib/utils";
 import { logoutAdmin } from "@/shared/lib/api";
 import { useAdminSessionStore } from "@/features/admin-auth/model/store";
 import { ADMIN_ROLE_LABEL, visibleNavItems } from "@/shared/lib/permissions";
+
+// 권한 정의(shared/lib/permissions)는 아이콘을 모르므로 여기서 href로 이어붙입니다.
+export const NAV_ICONS: Record<string, LucideIcon> = {
+  "/admin": LayoutDashboard,
+  "/admin/programs": Users2,
+  "/admin/content": FileCheck2,
+  "/admin/tickets": Ticket,
+  "/admin/ai-insights": Sparkles,
+  "/admin/esg": Leaf,
+  "/admin/audit-logs": History,
+};
 
 export function AdminLogoutButton({ showLabel = false, className }: { showLabel?: boolean; className?: string }) {
   const router = useRouter();
@@ -45,7 +56,8 @@ export function AdminSidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-2">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label }) => {
+          const Icon = NAV_ICONS[href];
           const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
           return (
             <Link

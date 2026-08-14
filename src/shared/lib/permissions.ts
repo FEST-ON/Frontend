@@ -1,6 +1,3 @@
-import type { ComponentType } from "react";
-import { LayoutDashboard, Users2, Ticket, Sparkles, Leaf, History, FileCheck2 } from "lucide-react";
-
 export type AdminRole = "SUPER_ADMIN" | "FESTIVAL_MANAGER" | "FIELD_OPERATOR" | "MERCHANT" | "REVIEWER";
 
 export const ADMIN_ROLE_LABEL: Record<string, string> = {
@@ -14,23 +11,25 @@ export const ADMIN_ROLE_LABEL: Record<string, string> = {
 export interface AdminNavItem {
   href: string;
   label: string;
-  icon: ComponentType<{ className?: string }>;
   roles: AdminRole[];
 }
 
 /**
- * 백엔드가 화면 단위 권한 매트릭스를 별도로 내려주지 않아, 역할 정의(SUPER_ADMIN/FESTIVAL_MANAGER/
- * FIELD_OPERATOR/MERCHANT/REVIEWER)를 근거로 이 화면에서 합리적으로 추정한 매핑입니다.
- * 실제 조직 운영 방식과 다르면 roles 배열만 조정하면 됩니다.
+ * 백엔드가 화면 단위 권한 매트릭스를 내려주지 않아, 각 화면이 호출하는 엔드포인트의
+ * roles() 가드를 근거로 매핑했습니다. 화면에 필요한 API 중 하나라도 호출할 수 있는
+ * 역할을 포함시킵니다. 백엔드 가드가 바뀌면 이 배열도 함께 맞춰야 합니다.
  */
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
-  { href: "/admin", label: "운영 대시보드", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR", "REVIEWER"] },
-  { href: "/admin/programs", label: "통합 운영관리", icon: Users2, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR"] },
-  { href: "/admin/content", label: "검수·게시 관리", icon: FileCheck2, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER"] },
-  { href: "/admin/tickets", label: "민원·공지·사고", icon: Ticket, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR"] },
-  { href: "/admin/ai-insights", label: "AI 민원 인사이트", icon: Sparkles, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER"] },
-  { href: "/admin/esg", label: "ESG 성과관리", icon: Leaf, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER"] },
-  { href: "/admin/audit-logs", label: "감사 로그", icon: History, roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER"] },
+  { href: "/admin", label: "운영 대시보드", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR", "REVIEWER"] },
+  { href: "/admin/programs", label: "통합 운영관리", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR"] },
+  // content-versions/{id}/reviews → SUPER_ADMIN, REVIEWER
+  { href: "/admin/content", label: "검수·게시 관리", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "REVIEWER"] },
+  { href: "/admin/tickets", label: "민원·공지·사고", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR"] },
+  // ai/reviews, ai/reviews/{id}/decision → SUPER_ADMIN, FESTIVAL_MANAGER, REVIEWER
+  { href: "/admin/ai-insights", label: "AI 민원 인사이트", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "REVIEWER"] },
+  // esg/measurements/{id}/reviews, esg/reports/{id}/approve → SUPER_ADMIN, REVIEWER
+  { href: "/admin/esg", label: "ESG 성과관리", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "REVIEWER"] },
+  { href: "/admin/audit-logs", label: "감사 로그", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER"] },
 ];
 
 export function findNavItem(pathname: string) {

@@ -7,7 +7,7 @@ import { Logo } from "@/shared/ui/logo";
 import { Button } from "@/shared/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/shared/ui/sheet";
 import { cn } from "@/shared/lib/utils";
-import { AdminLogoutButton } from "./admin-sidebar";
+import { AdminLogoutButton, NAV_ICONS } from "./admin-sidebar";
 import { useAdminSessionStore } from "@/features/admin-auth/model/store";
 import { findNavItem, visibleNavItems } from "@/shared/lib/permissions";
 
@@ -31,7 +31,8 @@ export function AdminTopbar() {
               <Logo tone="dark" />
             </SheetHeader>
             <nav className="space-y-1 px-3 py-2">
-              {navItems.map(({ href, label, icon: Icon }) => {
+              {navItems.map(({ href, label }) => {
+                const Icon = NAV_ICONS[href];
                 const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
                 return (
                   <Link

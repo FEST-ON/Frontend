@@ -12,10 +12,23 @@ import { Label } from "@/shared/ui/label";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 
-// 백엔드 스펙에 action enum이 없어서, 실제로 호출해 확인된 값만 기록합니다.
+// 백엔드 스펙에 action enum이 없어, audit() 호출부를 전수 조사해 정리한 값입니다.
+// 백엔드에 새 audit() 호출이 추가되면 여기에도 함께 등록해야 합니다.
 const ACTION_DESCRIPTIONS: Record<string, string> = {
+  LOGIN: "관리자 로그인",
+  CREATE: "리소스 생성 (축제, ESG 측정값)",
+  UPDATE: "리소스 수정 (대상 유형에 수정된 테이블이 기록돼요)",
+  CLONE: "이전 축제 복제",
   TRANSITION: "상태 변경 (예: 티켓 접수→처리중→완료)",
-  GENERATE: "리포트/문서 생성",
+  ASSIGN: "담당자 배정",
+  SUBMIT: "입점업체 신청 제출",
+  PUBLISH: "게시 (콘텐츠, 공지)",
+  PUBLISH_EMERGENCY: "긴급 공지 게시",
+  UNPUBLISH: "게시 종료",
+  CLOSE: "공지 종료",
+  GENERATE: "ESG 리포트 생성",
+  EXPORT: "데이터 내보내기",
+  REVERSE: "쿠폰 사용 취소",
 };
 
 function describeAction(action: string) {
