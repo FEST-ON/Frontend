@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, Users2, FileCheck2, Ticket, Sparkles, Leaf, History, LogOut, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Users2, MapPinned, FileCheck2, Ticket, Sparkles, Leaf, History, LogOut, type LucideIcon } from "lucide-react";
 import { Logo } from "@/shared/ui/logo";
 import { cn } from "@/shared/lib/utils";
 import { logoutAdmin } from "@/shared/lib/api";
@@ -15,6 +15,7 @@ import { ADMIN_ROLE_LABEL, visibleNavItems } from "@/shared/lib/permissions";
 export const NAV_ICONS: Record<string, LucideIcon> = {
   "/admin": LayoutDashboard,
   "/admin/programs": Users2,
+  "/admin/map-locations": MapPinned,
   "/admin/content": FileCheck2,
   "/admin/tickets": Ticket,
   "/admin/ai-insights": Sparkles,
