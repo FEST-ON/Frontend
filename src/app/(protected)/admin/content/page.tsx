@@ -46,8 +46,7 @@ const STATUS = {
 
 async function fetchContentItems() {
   const festivalId = await adminFestivalId();
-  const items = await adminApi<Array<{ id: string }>>(`/admin/festivals/${festivalId}/content-items`);
-  return Promise.all(items.map((item) => adminApi<ContentItem>(`/admin/festivals/${festivalId}/content-items/${item.id}`)));
+  return adminApi<ContentItem[]>(`/admin/festivals/${festivalId}/content-items`);
 }
 
 async function changeContentState(input: {
