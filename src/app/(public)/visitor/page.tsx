@@ -56,6 +56,9 @@ export default function VisitorHomePage() {
   const scheduleQuery = useQuery({ queryKey: ["schedule", locale] as const, queryFn: () => fetchSchedule(locale) });
   const festival = festivalQuery.data;
   const schedule = scheduleQuery.data;
+  const festivalPeriod = festival?.period
+    ? `${festival.period.start.slice(5).replace("-", "/")} ~ ${festival.period.end.slice(5).replace("-", "/")}`
+    : t.home.festivalLoading;
 
   const today = new Date().toLocaleDateString(bcp47, {
     year: "numeric",
@@ -85,7 +88,7 @@ export default function VisitorHomePage() {
 
       <div className="overflow-hidden rounded-2xl bg-primary p-5 text-primary-foreground">
         <Badge className="bg-white/15 text-white hover:bg-white/15">
-          {festival?.period.start.slice(5).replace("-", "/")} ~ {festival?.period.end.slice(5).replace("-", "/")}
+          {festivalPeriod}
         </Badge>
         <h2 className="mt-2 text-lg font-bold leading-snug">
           {festival?.name ?? (festivalQuery.isError ? t.common.loadFailed : t.home.festivalLoading)}
