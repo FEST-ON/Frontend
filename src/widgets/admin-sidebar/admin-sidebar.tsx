@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, Users2, MapPinned, FileCheck2, Ticket, TicketCheck, TicketPercent, Megaphone, Sparkles, Leaf, History, LogOut, Activity, UserCog, Store, Gift, FileSearch, Building2, KeyRound, ChevronDown, ClipboardList, Search, ShieldCheck, Recycle, Trash2, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Users2, MapPinned, FileCheck2, Ticket, TicketCheck, TicketPercent, Megaphone, Sparkles, Leaf, History, LogOut, Activity, UserCog, Store, Gift, FileSearch, Building2, KeyRound, ChevronDown, ClipboardList, Search, ShieldCheck, Recycle, Trash2, TrendingUp, type LucideIcon } from "lucide-react";
 import { Logo } from "@/shared/ui/logo";
 import { cn } from "@/shared/lib/utils";
 import { logoutAdmin } from "@/shared/lib/api";
@@ -20,6 +20,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   "/admin/field": Activity,
   "/admin/reusable-containers": Recycle,
   "/admin/staff": UserCog,
+  "/admin/demand-forecast": TrendingUp,
   "/admin/businesses": Store,
   "/admin/rewards": Gift,
   "/admin/documents": FileSearch,
