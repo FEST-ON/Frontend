@@ -43,6 +43,7 @@ export interface DemandForecastDay {
   tableVersion?: string;
   builtAt?: string;
   holdoutAccuracy?: number;
+  source?: string;
 }
 
 export interface DemandForecast {
