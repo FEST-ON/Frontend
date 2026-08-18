@@ -12,10 +12,10 @@ export const DEMAND_LABEL: Record<DemandLabel, string> = {
 };
 
 export const DEMAND_RATIO: Record<DemandLabel, string> = {
-  LOW: "일평균 0.7배 미만",
-  NORMAL: "일평균 0.7~1.3배",
-  HIGH: "일평균 1.3~2.0배",
-  PEAK: "일평균 2.0배 초과",
+  LOW: "일평균 0.85배 미만",
+  NORMAL: "일평균 0.85~1.10배",
+  HIGH: "일평균 1.10~1.30배",
+  PEAK: "일평균 1.30배 초과",
 };
 
 export const DEMAND_TONE: Record<DemandLabel, Tone> = {
@@ -43,6 +43,7 @@ export interface DemandForecastDay {
   tableVersion?: string;
   builtAt?: string;
   holdoutAccuracy?: number;
+  source?: string;
 }
 
 export interface DemandForecast {
@@ -55,13 +56,12 @@ export interface DemandForecastInput {
   dailyAverage: number;
   region: Region;
   holidayDates: string[];
-  rainDates: string[];
   startDate?: string;
   festivalDays?: number;
 }
 
 /** 개막 전 사전 배치용 조회. 서버는 구워 둔 조회표를 한 번 읽을 뿐이라 저장되는 값은 없다. */
-export function fetchDemandForecast({ dailyAverage, region, holidayDates, rainDates, startDate, festivalDays }: DemandForecastInput) {
+export function fetchDemandForecast({ dailyAverage, region, holidayDates, startDate, festivalDays }: DemandForecastInput) {
   const query = new URLSearchParams({
     daily_average: String(dailyAverage),
     region,
@@ -71,6 +71,5 @@ export function fetchDemandForecast({ dailyAverage, region, holidayDates, rainDa
     query.set("festival_days", String(festivalDays));
   }
   holidayDates.forEach((date) => query.append("holiday_dates", date));
-  rainDates.forEach((date) => query.append("rain_dates", date));
   return festivalApi<DemandForecast>(`/demand-forecast?${query}`, { cache: "no-store" });
 }
