@@ -35,6 +35,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { href: "/admin/tickets", label: "민원·공지·사고", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR"], group: "현장 운영" },
   // coupon-redemptions 는 백엔드에서 Operator(최고 관리자·축제 담당자·현장 운영자) 범위다.
   { href: "/admin/coupons", label: "쿠폰 사용 처리", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR"], group: "현장 운영" },
+  { href: "/admin/plogging", label: "플로깅 인증", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR"], group: "현장 운영" },
   { href: "/admin/reusable-containers", label: "재사용기 회수", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR"], group: "현장 운영" },
   // demand-forecast → 축제 범위의 모든 역할(Scope). 인력 배치의 기준이라 배치 메뉴 앞에 둔다.
   { href: "/admin/demand-forecast", label: "인원 예측", roles: ["SUPER_ADMIN", "FESTIVAL_MANAGER", "FIELD_OPERATOR"], group: "현장 운영" },
