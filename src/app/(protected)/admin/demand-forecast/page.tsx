@@ -22,11 +22,10 @@ import { Switch } from "@/shared/ui/switch";
 import { Form, SubmitButton } from "@/shared/ui/form";
 import { QueryState } from "@/shared/ui/query-state";
 
-const DEFAULT_INPUT: DemandForecastInput = { dailyAverage: 5000, region: "OTHER", holidayDates: [], rainDates: [] };
+const DEFAULT_INPUT: DemandForecastInput = { dailyAverage: 5000, region: "OTHER", holidayDates: [] };
 
 interface DayCard {
   holiday: boolean;
-  rain: boolean;
 }
 
 /** 시작일 + 카드 순서로 날짜를 만든다 — 카드마다 날짜를 따로 들고 있지 않는다. */
@@ -42,7 +41,7 @@ export default function DemandForecastPage() {
     ...DEFAULT_INPUT,
     dailyAverage: String(DEFAULT_INPUT.dailyAverage),
     startDate: "",
-    days: [{ holiday: false, rain: false }] as DayCard[],
+    days: [{ holiday: false }] as DayCard[],
   });
   // 조회는 제출할 때만 나간다 — 일평균을 타이핑하는 동안 매 글자마다 부르지 않도록.
   const [input, setInput] = useState<DemandForecastInput>(DEFAULT_INPUT);
@@ -58,11 +57,10 @@ export default function DemandForecastPage() {
     const registered = forecast.data?.days;
     if (form.startDate || !registered?.length) return;
     set("startDate")(registered[0].date);
-    set("days")(registered.map(() => ({ holiday: false, rain: false })));
+    set("days")(registered.map(() => ({ holiday: false })));
   }, [forecast.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dailyAverage = Number(form.dailyAverage);
-  const isSynthetic = forecast.data?.days[0]?.source?.startsWith("synthetic") ?? false;
   const setDay = (index: number, patch: Partial<DayCard>) =>
     set("days")(form.days.map((day, i) => (i === index ? { ...day, ...patch } : day)));
   const datesWhere = (key: keyof DayCard) =>
@@ -80,31 +78,26 @@ export default function DemandForecastPage() {
         <ol className="mt-2 space-y-1.5">
           <li>
             <b className="text-foreground">1. 타깃</b> — 절대 방문객 수 대신 <b>그 축제 자신의 일평균 대비 배수</b>를
-            네 구간(0.7 / 1.3 / 2.0배 경계)으로 나눈 분류 문제로 풉니다. 축제 간 규모가 100배 넘게 차이나서, 절대값을
+            네 구간(0.85 / 1.10 / 1.30배 경계)으로 나눈 분류 문제로 풉니다. 축제 간 규모가 100배 넘게 차이나서, 절대값을
             맞히는 모델은 큰 축제에만 맞고 작은 축제에서는 전부 빗나갑니다.
           </li>
           <li>
-            <b className="text-foreground">2. 입력</b> — 일차 위치(첫날·중간·마지막), 주말, 공휴일, 축제 규모(일평균
-            5천 / 5만 기준 3구간), 지역(수도권·광역시·그 외), 우천. 여섯 축 모두 저카디널리티라 가능한 조합이 216개뿐입니다.
+            <b className="text-foreground">2. 입력</b> — 일차 위치(첫날·중간·마지막), 주말, 공휴일, 지역 규모(일평균 외지인 방문자
+            5.5만 / 15만 기준 3구간), 지역(수도권·광역시·그 외). 다섯 축 모두 저카디널리티라 가능한 조합이 108개뿐입니다.
           </li>
           <li>
-            <b className="text-foreground">3. 모델</b> — 한국관광 데이터랩 축제 방문자 통계를 학습 데이터로 쓰고,
+            <b className="text-foreground">3. 모델</b> — 한국관광공사 「지역별 방문자수」 공개 API의 일자별
+            집계를 축제 개최기간에 맞춰 조인한 데이터를 쓰고,
             분류기는 <b>TabPFN</b>입니다. 축제는 연 1회 3~5일이라 축제별 이력이 구조적으로 부족한데, TabPFN은 파라미터를
             새로 학습하는 대신 과거 관측을 컨텍스트로 받아 사후 예측 분포를 바로 내므로 이런 소규모·콜드스타트 표 데이터에 맞습니다.
           </li>
           <li>
-            <b className="text-foreground">4. 서빙</b> — 216개 조합을 오프라인에서 전부 추론해 라벨과 확률을 JSON
+            <b className="text-foreground">4. 서빙</b> — 108개 조합을 오프라인에서 전부 추론해 라벨과 확률을 JSON
             조회표로 굽고, 운영 서버는 조회 한 번만 합니다. 추론 런타임을 배포하지 않고, 이산화 규칙이 조회표에 함께
             실려 나가 학습·서빙 간 전처리 불일치가 생길 수 없습니다.
           </li>
         </ol>
       </div>
-
-      {isSynthetic && (
-        <div role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          현재 조회표는 실측 데이터가 아니라 배관 검증용 더미 데이터로 구워져 있어요. 실제 인력 배치 판단에 쓰지 마세요.
-        </div>
-      )}
 
       <Form
         className="space-y-4"
@@ -114,7 +107,6 @@ export default function DemandForecastPage() {
           startDate: form.startDate || undefined,
           festivalDays: form.startDate ? form.days.length : undefined,
           holidayDates: datesWhere("holiday"),
-          rainDates: datesWhere("rain"),
         })}
       >
         <div className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2">
@@ -136,7 +128,7 @@ export default function DemandForecastPage() {
         <div className="space-y-2">
           <div>
             <p className="text-sm font-medium text-foreground">일자별 조건</p>
-            <p className="text-xs text-muted-foreground">시작일을 정하고, 공휴일이거나 비 예보가 있는 날만 켜 주세요. 하루씩 카드를 늘려 기간을 만듭니다.</p>
+            <p className="text-xs text-muted-foreground">시작일을 정하고, 공휴일인 날만 켜 주세요. 하루씩 카드를 늘려 기간을 만듭니다.</p>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {form.days.map((day, index) => (
@@ -169,10 +161,6 @@ export default function DemandForecastPage() {
                     <Switch checked={day.holiday} onCheckedChange={(checked) => setDay(index, { holiday: checked })} />
                     휴일
                   </Label>
-                  <Label className="flex items-center gap-2">
-                    <Switch checked={day.rain} onCheckedChange={(checked) => setDay(index, { rain: checked })} />
-                    우천
-                  </Label>
                 </div>
               </div>
             ))}
@@ -181,7 +169,7 @@ export default function DemandForecastPage() {
               variant="outline"
               className="h-auto min-h-24 rounded-xl border-dashed"
               disabled={form.days.length >= 365}
-              onClick={() => set("days")([...form.days, { holiday: false, rain: false }])}
+              onClick={() => set("days")([...form.days, { holiday: false }])}
             >
               + 다음 날 추가
             </Button>
