@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CheckCircle2, Clock3, Coins, QrCode, ScanLine, Trash2, UserRound } from "lucide-react";
 import { useAdminSessionStore } from "@/features/admin-auth/model/store";
 import {
   PLOGGING_OPERATOR_EMAIL,
   PLOGGING_POINTS_PER_BAG,
-  PLOGGING_STORAGE_KEY,
-  PLOGGING_UPDATED_EVENT,
   createPloggingSubmission,
   ploggingPoints,
-  readPloggingSubmissions,
-  type PloggingSubmission,
+  usePloggingSubmissions,
+  writePloggingSubmissions,
 } from "@/features/plogging";
 import { isToday } from "@/features/reusable-containers";
 import { Badge } from "@/shared/ui/badge";
@@ -21,6 +19,7 @@ import { Label } from "@/shared/ui/label";
 import { QrScanner } from "@/shared/ui/qr-scanner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { StatCard } from "@/shared/ui/stat-card";
+import { seoulShort } from "@/shared/lib/utils";
 
 const LOCATIONS = ["메인 광장 회수존", "푸드존 F-2", "공연장 입구"];
 
@@ -30,19 +29,9 @@ const EMPTY_FORM = {
   location: LOCATIONS[0],
 };
 
-function formatTime(isoDate: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(isoDate));
-}
-
 export default function AdminPloggingPage() {
   const user = useAdminSessionStore((state) => state.user);
-  const [submissions, setSubmissions] = useState<PloggingSubmission[]>([]);
+  const submissions = usePloggingSubmissions();
   const [form, setForm] = useState(EMPTY_FORM);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [notice, setNotice] = useState<string>();
@@ -50,32 +39,15 @@ export default function AdminPloggingPage() {
   const isAssignedOperator = user?.email?.toLowerCase() === PLOGGING_OPERATOR_EMAIL;
   const canProcess = isAssignedOperator && user?.role === "FIELD_OPERATOR";
 
-  useEffect(() => {
-    const sync = () => setSubmissions(readPloggingSubmissions());
-    sync();
-    window.addEventListener("storage", sync);
-    window.addEventListener(PLOGGING_UPDATED_EVENT, sync);
-    return () => {
-      window.removeEventListener("storage", sync);
-      window.removeEventListener(PLOGGING_UPDATED_EVENT, sync);
-    };
-  }, []);
-
   const verifiedToday = useMemo(() => submissions.filter((submission) => isToday(submission.verifiedAt)).length, [submissions]);
   const pointsIssued = ploggingPoints(submissions);
   const bagsCollected = submissions.reduce((total, submission) => total + submission.bagCount, 0);
-
-  function save(next: PloggingSubmission[]) {
-    window.localStorage.setItem(PLOGGING_STORAGE_KEY, JSON.stringify(next));
-    window.dispatchEvent(new Event(PLOGGING_UPDATED_EVENT));
-    setSubmissions(next);
-  }
 
   function submitVerification(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canProcess || !form.visitorCode.trim()) return;
     const submission = createPloggingSubmission({ ...form, operatorEmail: PLOGGING_OPERATOR_EMAIL });
-    save([submission, ...submissions]);
+    writePloggingSubmissions([submission, ...submissions]);
     setForm(EMPTY_FORM);
     setNotice(`${submission.submissionCode} 인증 완료 · +${submission.points}P 적립`);
   }
@@ -213,7 +185,7 @@ export default function AdminPloggingPage() {
                   </span>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{submission.submissionCode} · {submission.visitorCode}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">쓰레기 {submission.bagCount}봉투 · {submission.location} · {formatTime(submission.verifiedAt)}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">쓰레기 {submission.bagCount}봉투 · {submission.location} · {seoulShort(submission.verifiedAt)}</p>
                   </div>
                 </div>
                 <Badge variant="secondary" className="text-[10px]">+{submission.points}P 적립</Badge>

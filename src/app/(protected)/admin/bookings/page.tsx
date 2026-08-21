@@ -14,6 +14,7 @@ import {
 import {
   BOOKING_CANCEL_DEADLINE_MINUTES,
   BOOKING_NO_SHOW_GRACE_MINUTES,
+  BOOKING_STATUS_LABEL,
   bookingActionsFor,
   isNoShowDue,
 } from "@/shared/lib/booking-policy";
@@ -25,20 +26,11 @@ import { includesKeyword, useListView } from "@/shared/lib/use-list-view";
 import { ListSearch, ShowMore } from "@/shared/ui/list-search";
 import { SkeletonList } from "@/shared/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { seoulMoment } from "@/shared/lib/utils";
 
 type StatusFilter = "전체" | VisitorBooking["status"];
 
 const FILTERS: StatusFilter[] = ["전체", "WAITING", "CALLED", "CONFIRMED", "COMPLETED", "NO_SHOW", "CANCELLED"];
-
-const STATUS_LABEL: Record<string, string> = {
-  전체: "전체",
-  CONFIRMED: "예약 확정",
-  WAITING: "대기 중",
-  CALLED: "호출됨",
-  COMPLETED: "입장 완료",
-  CANCELLED: "취소",
-  NO_SHOW: "노쇼",
-};
 
 const STATUS_STYLE: Record<string, string> = {
   CONFIRMED: "bg-primary/10 text-primary",
@@ -48,12 +40,6 @@ const STATUS_STYLE: Record<string, string> = {
   CANCELLED: "bg-slate-100 text-slate-500",
   NO_SHOW: "bg-red-100 text-red-700",
 };
-
-function formatMoment(value: string | null) {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString("ko-KR");
-}
 
 export default function AdminBookingsPage() {
   const queryClient = useQueryClient();
@@ -121,7 +107,7 @@ export default function AdminBookingsPage() {
         <TabsList className="flex-wrap">
           {FILTERS.map((value) => (
             <TabsTrigger key={value} value={value} className="gap-1.5">
-              {STATUS_LABEL[value]}
+              {BOOKING_STATUS_LABEL[value] ?? value}
               {value !== "전체" && (
                 <span className="text-[0.625rem] text-muted-foreground">{counts.get(value) ?? 0}</span>
               )}
@@ -185,7 +171,7 @@ function BookingRow({
       }`}
     >
       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.6875rem] font-bold ${STATUS_STYLE[booking.status]}`}>
-        {STATUS_LABEL[booking.status] ?? booking.status}
+        {BOOKING_STATUS_LABEL[booking.status] ?? booking.status}
       </span>
 
       <div className="min-w-0 flex-1">
@@ -193,8 +179,8 @@ function BookingRow({
           {booking.queueNumber ? `${booking.queueNumber}번 · ` : ""}{booking.programTitle}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {formatMoment(booking.startsAt)} · {booking.partySize}명
-          {booking.calledAt && ` · ${formatMoment(booking.calledAt)} 호출`}
+          {seoulMoment(booking.startsAt)} · {booking.partySize}명
+          {booking.calledAt && ` · ${seoulMoment(booking.calledAt)} 호출`}
         </p>
         {phone && (
           <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">

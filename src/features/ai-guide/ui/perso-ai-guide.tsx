@@ -132,7 +132,7 @@ export function PersoAiGuide() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
 
-  const latestAssistantMessage = [...messages].reverse().find((message) => message.role === "assistant");
+  const latestAssistantMessage = messages.findLast((message) => message.role === "assistant");
   const latestAssistantMessageId = latestAssistantMessage?.id;
   const latestAssistantMessageContent = latestAssistantMessage?.content;
 

@@ -1,4 +1,4 @@
-import { adminApi, festivalApi, festivalApiAll, idempotencyKey, json } from "@/shared/lib/api";
+import { adminApi, festivalApi, festivalApiAll, idempotent, json } from "@/shared/lib/api";
 import type { JobResult } from "@/shared/lib/download-artifact";
 
 export const MEASUREMENT_STATUS_LABEL: Record<string, string> = {
@@ -40,12 +40,9 @@ export interface NewMeasurement {
 }
 
 export async function createMeasurement(input: NewMeasurement) {
-  return festivalApi(`/esg/measurements`, {
-    method: "POST",
-    // 같은 지표·같은 근거를 두 번 올리면 서버가 중복으로 막는다.
-    headers: { "Idempotency-Key": idempotencyKey() },
-    body: JSON.stringify({ ...input, dedupeKey: `${input.metricVersionId}:${input.measuredAt}:${input.value}` }),
-  });
+  // 같은 지표·같은 근거를 두 번 올리면 서버가 중복으로 막는다.
+  return festivalApi(`/esg/measurements`,
+    idempotent("POST", { ...input, dedupeKey: `${input.metricVersionId}:${input.measuredAt}:${input.value}` }));
 }
 
 export async function reviewMeasurement({ measurementId, decision, comment }: { measurementId: string; decision: "APPROVED" | "REJECTED"; comment?: string }) {

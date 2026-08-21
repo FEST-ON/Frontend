@@ -7,6 +7,8 @@ import {
   createBusiness,
   createBusinessCoupon,
   createMerchantInvitation,
+  BENEFIT_TYPES,
+  couponDefaults,
   deactivateBusinessMerchant,
   fetchAdminBusinesses,
   fetchBusinessCoupons,
@@ -40,26 +42,11 @@ import { ListSearch, ShowMore } from "@/shared/ui/list-search";
 import { Skeleton, SkeletonList } from "@/shared/ui/skeleton";
 import { StatusPill } from "@/shared/ui/status-pill";
 import { Switch } from "@/shared/ui/switch";
-import { datetimeLocal, toIso } from "@/shared/lib/utils";
+import { seoulDateTime, toIso } from "@/shared/lib/utils";
 import { useForm } from "@/shared/lib/use-form";
 import { isPendingFor, useWrite } from "@/shared/lib/use-write";
 
-const BENEFIT_TYPES = [
-  { value: "PERCENT", label: "% 할인" },
-  { value: "FIXED", label: "정액 할인" },
-  { value: "GIFT", label: "사은품" },
-];
-
 const EMPTY_BUSINESS: NewBusiness = { registrationNo: "", name: "", category: "", description: "" };
-
-function couponDefaults(): NewCoupon {
-  const now = new Date();
-  const week = new Date(now.getTime() + 7 * 24 * 60 * 60_000);
-  return {
-    name: "", description: "", benefitType: "PERCENT", benefitValue: 10,
-    issueLimit: 100, perVisitorLimit: 1, startsAt: datetimeLocal(now), endsAt: datetimeLocal(week),
-  };
-}
 
 function CouponPanel({ business }: { business: AdminBusiness }) {
   const { form, set, field, reset } = useForm<NewCoupon>(couponDefaults);
@@ -188,7 +175,7 @@ function MerchantPanel({ business }: { business: AdminBusiness }) {
                       {invitation.status === "PENDING" && invitation.expired
                         ? "만료"
                         : invitation.status === "PENDING"
-                          ? `${new Date(invitation.expiresAt).toLocaleString("ko-KR")} 만료`
+                          ? `${seoulDateTime(invitation.expiresAt)} 만료`
                           : invitation.status === "ACCEPTED"
                             ? "수락됨"
                             : "회수됨"}

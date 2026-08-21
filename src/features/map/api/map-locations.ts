@@ -12,6 +12,11 @@ export const MAP_LOCATION_CATEGORIES = [
 
 export type MapLocationCategory = (typeof MAP_LOCATION_CATEGORIES)[number]["value"];
 
+/** 화면에 보여줄 분류 이름. 정의되지 않은 값이 오면 코드 그대로 보여준다. */
+export function categoryLabel(category: MapLocationCategory) {
+  return MAP_LOCATION_CATEGORIES.find((item) => item.value === category)?.label ?? category;
+}
+
 export interface MapLocation {
   id: string;
   name: string;

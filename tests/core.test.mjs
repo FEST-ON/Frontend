@@ -21,15 +21,20 @@ async function importTypeScript(path, imports) {
 
 const apiUrl = await transpile("../src/shared/lib/api.ts");
 const { adminApi, adminFestivalId, festivalApi, json, logoutAdmin } = await import(apiUrl);
+const localStoreUrl = await transpile("../src/shared/lib/local-store.ts");
+const translateClientUrl = await transpile("../src/shared/lib/i18n/translate-client.ts");
+const surveyStoreLinkUrl = await transpile("../src/shared/lib/survey-store-link.ts");
 const { generateReply } = await importTypeScript("../src/features/ai-guide/lib/generate-reply.ts", {
   "@/shared/lib/api": apiUrl,
   "@/shared/lib/i18n": moduleUrl('export const BCP47_BY_LOCALE = { ko: "ko-KR" };'),
+  "@/shared/lib/i18n/translate-client": translateClientUrl,
+  "@/shared/lib/local-store": localStoreUrl,
 });
 const issueAnalysisUrl = await transpile("../src/features/complaint-insight/api/issue-analysis.ts", {
   "@/shared/lib/api": apiUrl,
 });
 const { operatingStatus } = await importTypeScript("../src/features/map/lib/operating-status.ts");
-const { datetimeLocal, toIso } = await importTypeScript("../src/shared/lib/utils.ts", {
+const { datetimeLocal, toIso, toggleValue } = await importTypeScript("../src/shared/lib/utils.ts", {
   clsx: moduleUrl("export const clsx = (...a) => a.join(' ');"),
   "tailwind-merge": moduleUrl("export const twMerge = (v) => v;"),
 });
@@ -39,6 +44,8 @@ const { buildImprovementTasks, buildRecurringIssues, buildTopicBreakdown } = awa
 // 표시 서식은 규칙 테스트와 무관해서 스텁으로 끊는다.
 const entity = {
   "@/shared/lib/api": apiUrl,
+  "@/shared/lib/i18n/translate-client": translateClientUrl,
+  "@/shared/lib/survey-store-link": surveyStoreLinkUrl,
   "@/features/complaint-insight/api/issue-analysis": issueAnalysisUrl,
   "@/shared/lib/utils": moduleUrl("export const seoulDateTime = String, seoulShort = String, seoulTime = String;"),
 };
@@ -50,7 +57,10 @@ const { ADMIN_NAV_ITEMS, canAccessPath, mobileNavItems, visibleNavItems } = awai
 const { mutationToast } = await importTypeScript("../src/shared/lib/mutation-toast.ts");
 const { translateFields } = await importTypeScript("../src/shared/lib/i18n/translate-client.ts");
 const { detectLocale } = await importTypeScript("../src/shared/lib/i18n/detect-locale.ts");
-const { isSeniorAge } = await importTypeScript("../src/features/kiosk-age-assist/model/estimate-age.ts");
+// 모델 로더는 브라우저 전용(동적 import)이라 규칙 테스트에서는 끊는다.
+const { isSeniorAge } = await importTypeScript("../src/features/kiosk-age-assist/model/estimate-age.ts", {
+  "@/shared/lib/face-api": moduleUrl("export const loadFaceApi = () => Promise.reject(new Error('stub'));"),
+});
 
 class MemoryStorage {
   #values = new Map();
@@ -338,7 +348,7 @@ test("사이드바 그룹은 연속 배치되어 헤더가 한 번만 나온다"
 test("사이드바는 운영 빈도와 업무 흐름 순으로 배치된다", () => {
   assert.deepEqual(ADMIN_NAV_ITEMS.map((item) => item.href), [
     "/admin",
-    "/admin/field", "/admin/bookings", "/admin/tickets", "/admin/coupons", "/admin/reusable-containers",
+    "/admin/field", "/admin/bookings", "/admin/tickets", "/admin/coupons", "/admin/plogging", "/admin/reusable-containers",
     "/admin/staff", "/admin/programs",
     "/admin/announcements", "/admin/content", "/admin/ai-insights", "/admin/surveys", "/admin/documents",
     "/admin/esg", "/admin/rewards",
@@ -553,6 +563,14 @@ test("일시 입력은 브라우저 타임존과 무관하게 축제 기준(Asia
   assert.equal(datetimeLocal(toIso("2026-09-12T10:00")), "2026-09-12T10:00");
   // 타임존이 붙은 값은 건드리지 않는다.
   assert.equal(toIso("2026-09-12T01:00:00Z"), "2026-09-12T01:00:00.000Z");
+});
+
+test("목록 토글은 없으면 넣고 있으면 빼며, 원본을 건드리지 않는다", () => {
+  const first = toggleValue([], "VISITOR");
+  assert.deepEqual(first, ["VISITOR"]);
+  assert.deepEqual(toggleValue(first, "STAFF"), ["VISITOR", "STAFF"]);
+  assert.deepEqual(toggleValue(first, "VISITOR"), []);
+  assert.deepEqual(first, ["VISITOR"]);
 });
 
 test("예약 셀프 취소는 시작 30분 전에 닫힌다(서버 규칙과 같은 표)", () => {

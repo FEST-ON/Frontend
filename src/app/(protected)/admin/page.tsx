@@ -21,6 +21,7 @@ import { Skeleton, SkeletonList } from "@/shared/ui/skeleton";
 import { FestivalBriefCard } from "@/features/festival-brief/ui/festival-brief-card";
 import { LANGUAGE_BY_LOCALE } from "@/shared/lib/i18n";
 import type { Locale } from "@/shared/lib/i18n";
+import { seoulDateTime } from "@/shared/lib/utils";
 
 const EMPTY_FILTERS: OpsFilters = { areaId: "", timeFrom: "", timeTo: "" };
 
@@ -82,7 +83,7 @@ export default function AdminDashboardPage() {
         {/* 숫자만 보여주면 어느 시점 어떤 원천인지 알 수 없어 현장 판단에 쓸 수 없다. */}
         <p className="mt-3 text-[0.6875rem] text-muted-foreground">
           출처 {ops?.sources.join(", ") ?? "-"} · 혼잡 기준 시각{" "}
-          {ops?.updatedAt ? new Date(ops.updatedAt).toLocaleString("ko-KR") : "기록 없음"}
+          {ops?.updatedAt ? seoulDateTime(ops.updatedAt) : "기록 없음"}
           {filters.areaId && " · 방문 세션·포인트는 구역과 연결되지 않아 전체 값으로 표시돼요."}
         </p>
       </section>
@@ -199,7 +200,7 @@ export default function AdminDashboardPage() {
                   {zone.estimatedWaitMin !== null ? `예상 대기 ${zone.estimatedWaitMin}분` : "대기 정보 없음"}
                 </p>
                 <p className="text-[0.6875rem] text-muted-foreground">
-                  {new Date(zone.capturedAt).toLocaleString("ko-KR")} 기준{zone.stale && " · 오래된 값"}
+                  {seoulDateTime(zone.capturedAt)} 기준{zone.stale && " · 오래된 값"}
                 </p>
               </div>
             ))}

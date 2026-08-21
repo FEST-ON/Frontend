@@ -11,6 +11,7 @@ import { Label } from "@/shared/ui/label";
 import { Logo } from "@/shared/ui/logo";
 import { queryErrorMessage } from "@/shared/ui/query-state";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { seoulDateTime } from "@/shared/lib/utils";
 
 /**
  * BIZ-05 상인 계정 초대 수락.
@@ -74,7 +75,7 @@ function InviteForm() {
           {preview.data.festivalName} · {preview.data.businessName}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {preview.data.email} · {new Date(preview.data.expiresAt).toLocaleString("ko-KR")} 만료
+          {preview.data.email} · {seoulDateTime(preview.data.expiresAt)} 만료
         </p>
       </div>
 

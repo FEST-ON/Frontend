@@ -1,20 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowDownToLine, ArrowUpFromLine, CheckCircle2, Clock3, Coins, QrCode, Recycle, ScanLine, UserRound } from "lucide-react";
 import { useAdminSessionStore } from "@/features/admin-auth/model/store";
 import {
   CONTAINER_TYPE_LABEL,
-  REUSABLE_CONTAINER_STORAGE_KEY,
-  REUSABLE_CONTAINER_UPDATED_EVENT,
   REUSABLE_OPERATOR_EMAIL,
   REUSABLE_STAMP_POINTS,
   completeContainerReturn,
   createContainerRental,
   isToday,
-  readReusableContainerRentals,
   reusableContainerPoints,
-  type ContainerRental,
+  useReusableContainerRentals,
+  writeReusableContainerRentals,
   type ContainerType,
 } from "@/features/reusable-containers";
 import { Badge } from "@/shared/ui/badge";
@@ -26,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatCard } from "@/shared/ui/stat-card";
 import { StatusPill } from "@/shared/ui/status-pill";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { seoulShort } from "@/shared/lib/utils";
 
 type FlowMode = "RENT" | "RETURN";
 
@@ -38,19 +37,9 @@ const EMPTY_RENT_FORM = {
   station: STATIONS[0],
 };
 
-function formatTime(isoDate: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(isoDate));
-}
-
 export default function ReusableContainersPage() {
   const user = useAdminSessionStore((state) => state.user);
-  const [rentals, setRentals] = useState<ContainerRental[]>([]);
+  const rentals = useReusableContainerRentals();
   const [mode, setMode] = useState<FlowMode>("RENT");
   const [rentalForm, setRentalForm] = useState(EMPTY_RENT_FORM);
   const [returnRentalId, setReturnRentalId] = useState("");
@@ -60,17 +49,6 @@ export default function ReusableContainersPage() {
   const isAssignedOperator = user?.email?.toLowerCase() === REUSABLE_OPERATOR_EMAIL;
   const canProcess = isAssignedOperator && user?.role === "FIELD_OPERATOR";
 
-  useEffect(() => {
-    const sync = () => setRentals(readReusableContainerRentals());
-    sync();
-    window.addEventListener("storage", sync);
-    window.addEventListener(REUSABLE_CONTAINER_UPDATED_EVENT, sync);
-    return () => {
-      window.removeEventListener("storage", sync);
-      window.removeEventListener(REUSABLE_CONTAINER_UPDATED_EVENT, sync);
-    };
-  }, []);
-
   const activeRentals = useMemo(
     () => rentals.filter((rental) => rental.status === "RENTED").sort((a, b) => b.rentedAt.localeCompare(a.rentedAt)),
     [rentals],
@@ -79,25 +57,16 @@ export default function ReusableContainersPage() {
   const returnedToday = returnedRentals.filter((rental) => isToday(rental.returnedAt)).length;
   const returnRate = rentals.length ? Math.round((returnedRentals.length / rentals.length) * 100) : 0;
   const pointsIssued = reusableContainerPoints(rentals);
-  const selectedRental = activeRentals.find((rental) => rental.id === returnRentalId);
-
-  useEffect(() => {
-    if (!activeRentals.some((rental) => rental.id === returnRentalId)) {
-      setReturnRentalId(activeRentals[0]?.id ?? "");
-    }
-  }, [activeRentals, returnRentalId]);
-
-  function save(next: ContainerRental[]) {
-    window.localStorage.setItem(REUSABLE_CONTAINER_STORAGE_KEY, JSON.stringify(next));
-    window.dispatchEvent(new Event(REUSABLE_CONTAINER_UPDATED_EVENT));
-    setRentals(next);
-  }
+  // 고른 대여 건이 목록에서 사라지면(반납 처리·다른 탭 변경) 첫 건으로 되돌아간다.
+  // 상태를 고쳐 쓰는 대신 렌더에서 고르면 선택이 한 박자 늦게 따라오는 일이 없다.
+  const selectedRental = activeRentals.find((rental) => rental.id === returnRentalId) ?? activeRentals[0];
+  const selectedId = selectedRental?.id ?? "";
 
   function submitRental(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canProcess || !rentalForm.visitorCode.trim()) return;
     const rental = createContainerRental({ ...rentalForm, operatorEmail: REUSABLE_OPERATOR_EMAIL });
-    save([rental, ...rentals]);
+    writeReusableContainerRentals([rental, ...rentals]);
     setRentalForm(EMPTY_RENT_FORM);
     setReturnRentalId(rental.id);
     setMode("RETURN");
@@ -106,14 +75,14 @@ export default function ReusableContainersPage() {
 
   function submitReturn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canProcess || !returnRentalId) return;
-    const next = completeContainerReturn(rentals, returnRentalId);
+    if (!canProcess || !selectedId) return;
+    const next = completeContainerReturn(rentals, selectedId);
     if (!next) {
       setNotice("이미 반납 처리된 대여 건이에요.");
       return;
     }
-    const returned = next.find((rental) => rental.id === returnRentalId);
-    save(next);
+    const returned = next.find((rental) => rental.id === selectedId);
+    writeReusableContainerRentals(next);
     setNotice(`${returned?.rentalCode ?? "대여 건"} 반납 완료 · +${REUSABLE_STAMP_POINTS}P 스탬프 연계`);
   }
 
@@ -236,7 +205,7 @@ export default function ReusableContainersPage() {
             <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
               <div className="space-y-1">
                 <Label>반납 대여 건</Label>
-                <Select value={returnRentalId || "none"} onValueChange={(value) => setReturnRentalId(value === "none" ? "" : String(value ?? ""))}>
+                <Select value={selectedId || "none"} onValueChange={(value) => setReturnRentalId(value === "none" ? "" : String(value ?? ""))}>
                   <SelectTrigger className="w-full" disabled={!canProcess}><SelectValue placeholder="반납 대여 건 선택" /></SelectTrigger>
                   <SelectContent>
                     {activeRentals.length === 0 && <SelectItem value="none">반납 대기 중인 대여 없음</SelectItem>}
@@ -246,14 +215,14 @@ export default function ReusableContainersPage() {
               </div>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" disabled={!canProcess} onClick={() => setScannerMode("RETURN")}><QrCode className="size-3.5" /> 대여 QR 확인</Button>
-                <Button type="submit" disabled={!canProcess || !returnRentalId}><CheckCircle2 className="size-3.5" /> 반납 완료</Button>
+                <Button type="submit" disabled={!canProcess || !selectedId}><CheckCircle2 className="size-3.5" /> 반납 완료</Button>
               </div>
             </div>
             {selectedRental && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-border bg-muted/40 p-3 text-xs">
                 <span className="font-semibold text-foreground">{CONTAINER_TYPE_LABEL[selectedRental.containerType]} {selectedRental.quantity}개</span>
                 <span className="text-muted-foreground">{selectedRental.station}</span>
-                <span className="text-muted-foreground">대여 {formatTime(selectedRental.rentedAt)}</span>
+                <span className="text-muted-foreground">대여 {seoulShort(selectedRental.rentedAt)}</span>
                 <Badge variant="outline" className="text-[10px]">반납 시 +{REUSABLE_STAMP_POINTS}P</Badge>
               </div>
             )}
@@ -293,7 +262,7 @@ export default function ReusableContainersPage() {
                   </span>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{rental.rentalCode} · {rental.visitorCode}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">{CONTAINER_TYPE_LABEL[rental.containerType]} {rental.quantity}개 · {rental.station} · {formatTime(rental.returnedAt ?? rental.rentedAt)}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">{CONTAINER_TYPE_LABEL[rental.containerType]} {rental.quantity}개 · {rental.station} · {seoulShort(rental.returnedAt ?? rental.rentedAt)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

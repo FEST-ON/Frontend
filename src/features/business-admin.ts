@@ -1,5 +1,5 @@
 import { festivalApi, json } from "@/shared/lib/api";
-import { uniqueById } from "@/shared/lib/utils";
+import { datetimeLocal, uniqueById } from "@/shared/lib/utils";
 import type { Tone } from "@/shared/ui/status-pill";
 
 export type ParticipationStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
@@ -173,6 +173,22 @@ export interface NewCoupon {
   perVisitorLimit: number;
   startsAt: string;
   endsAt: string;
+}
+
+export const BENEFIT_TYPES: { value: NewCoupon["benefitType"]; label: string }[] = [
+  { value: "PERCENT", label: "% 할인" },
+  { value: "FIXED", label: "정액 할인" },
+  { value: "GIFT", label: "사은품" },
+];
+
+/** 쿠폰 발행 폼 초기값. 운영자·상인 콘솔이 같은 폼을 쓰고 기본 발행 수량만 다르다. */
+export function couponDefaults(issueLimit = 100): NewCoupon {
+  const now = new Date();
+  return {
+    name: "", description: "", benefitType: "PERCENT", benefitValue: 10,
+    issueLimit, perVisitorLimit: 1,
+    startsAt: datetimeLocal(now), endsAt: datetimeLocal(new Date(now.getTime() + 7 * 24 * 60 * 60_000)),
+  };
 }
 
 export async function createBusinessCoupon({ businessId, ...input }: NewCoupon & { businessId: string }) {

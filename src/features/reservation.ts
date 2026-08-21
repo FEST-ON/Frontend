@@ -1,4 +1,5 @@
-import { FESTIVAL_CODE, festivalApi, festivalApiAll, idempotencyKey, json, publicApi, visitorApi } from "@/shared/lib/api";
+import { FESTIVAL_CODE, festivalApi, festivalApiAll, idempotent, json, publicApi, visitorApi } from "@/shared/lib/api";
+import { readJson, writeJson } from "@/shared/lib/local-store";
 import type { BookingAction } from "@/shared/lib/booking-policy";
 
 export interface VisitorBooking {
@@ -48,32 +49,17 @@ export const MAX_PARTY_SIZE = 6;
 
 // phone은 서버 스펙에 없다 — 예약자 구분용 목업 값이라 호출부가 성공 후 로컬에만 저장한다.
 export function createBooking({ sessionId, partySize = 1 }: { sessionId: string; partySize?: number; phone?: string }) {
-  return visitorApi<VisitorBooking>(`/visitor/program-sessions/${sessionId}/bookings`, {
-    method: "POST",
-    headers: { "Idempotency-Key": idempotencyKey() },
-    body: JSON.stringify({ partySize }),
-  });
+  return visitorApi<VisitorBooking>(`/visitor/program-sessions/${sessionId}/bookings`, idempotent("POST", { partySize }));
 }
 
 const RESERVATION_PHONE_STORAGE_KEY = "festai-reservation-phones";
 
-export function readReservationPhones(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(RESERVATION_PHONE_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    return parsed && typeof parsed === "object" ? parsed as Record<string, string> : {};
-  } catch {
-    return {};
-  }
+export function readReservationPhones() {
+  return readJson<Record<string, string>>(RESERVATION_PHONE_STORAGE_KEY, {});
 }
 
 export function saveReservationPhone(bookingId: string, phone: string) {
-  if (typeof window === "undefined") return;
-  const phones = readReservationPhones();
-  phones[bookingId] = phone;
-  window.localStorage.setItem(RESERVATION_PHONE_STORAGE_KEY, JSON.stringify(phones));
+  writeJson(RESERVATION_PHONE_STORAGE_KEY, { ...readReservationPhones(), [bookingId]: phone });
 }
 
 export function cancelBooking(bookingId: string) {

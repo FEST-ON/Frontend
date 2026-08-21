@@ -8,6 +8,7 @@ import { QrScanner } from "@/shared/ui/qr-scanner";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { ErrorText, Form, SubmitButton } from "@/shared/ui/form";
+import { seoulDateTime } from "@/shared/lib/utils";
 
 export default function AdminCouponsPage() {
   const [token, setToken] = useState("");
@@ -84,7 +85,7 @@ export default function AdminCouponsPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-foreground">{redemption.couponName}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {new Date(redemption.redeemedAt).toLocaleString("ko-KR")} 사용 처리
+                    {seoulDateTime(redemption.redeemedAt)} 사용 처리
                   </p>
                 </div>
               </div>

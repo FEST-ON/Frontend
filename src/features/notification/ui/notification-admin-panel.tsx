@@ -37,25 +37,13 @@ import { StatusPill, type Tone } from "@/shared/ui/status-pill";
 import { Textarea } from "@/shared/ui/textarea";
 import { useForm } from "@/shared/lib/use-form";
 import { useWrite } from "@/shared/lib/use-write";
-import { datetimeLocal, toIso } from "@/shared/lib/utils";
+import { datetimeLocal, seoulMoment, toggleValue, toIso } from "@/shared/lib/utils";
 
 const SEVERITY_TONE: Record<AnnouncementSeverity, Tone> = {
   INFO: "secondary",
   WARNING: "warning",
   EMERGENCY: "danger",
 };
-
-function toggleValue(list: string[], value: string) {
-  return list.includes(value)
-    ? list.filter((v) => v !== value)
-    : [...list, value];
-}
-
-// datetime-local 입력이 브라우저 로컬 시간이므로 표시도 같은 기준으로 맞춘다.
-function formatMoment(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString("ko-KR");
-}
 
 type PublishMode = "now" | "scheduled";
 
@@ -395,9 +383,9 @@ export function NotificationAdminPanel() {
                           .join(", ")}
                   </span>
                   <span className="block">
-                    {formatMoment(startsAt)}부터{" "}
+                    {seoulMoment(startsAt)}부터{" "}
                     {endsAt
-                      ? `${formatMoment(endsAt)}까지`
+                      ? `${seoulMoment(endsAt)}까지`
                       : "직접 종료할 때까지"}{" "}
                     노출돼요.
                   </span>
@@ -452,7 +440,7 @@ export function NotificationAdminPanel() {
                     {booking.programTitle}
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {formatMoment(booking.startsAt)} · {booking.partySize}명
+                    {seoulMoment(booking.startsAt)} · {booking.partySize}명
                   </p>
                 </div>
                 <Button
@@ -517,9 +505,9 @@ export function NotificationAdminPanel() {
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {STATUS_LABEL[announcement.status]}
                     {announcement.startsAt &&
-                      ` · ${formatMoment(announcement.startsAt)}`}
+                      ` · ${seoulMoment(announcement.startsAt)}`}
                     {announcement.endsAt &&
-                      ` ~ ${formatMoment(announcement.endsAt)}`}
+                      ` ~ ${seoulMoment(announcement.endsAt)}`}
                   </p>
                 </div>
                 {canClose(announcement.status) && (
@@ -557,7 +545,7 @@ export function NotificationAdminPanel() {
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {booking.calledAt
-                    ? `${formatMoment(booking.calledAt)} 호출`
+                    ? `${seoulMoment(booking.calledAt)} 호출`
                     : "호출됨"}
                 </p>
               </div>

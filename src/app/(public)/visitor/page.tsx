@@ -7,12 +7,10 @@ import {
   CalendarDays,
   MapPin,
   RefreshCw,
-  Route,
   Sparkles,
   Store,
   Ticket,
   Stamp,
-  ClipboardList,
   ArrowRight,
   Trash2,
 } from "lucide-react";
